@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
 import dayjs from "./lib/dayjs";
 import {
@@ -9,6 +9,7 @@ import {
   Search,
   Paperclip,
   Download as DownloadIcon,
+  FileDown,
 } from "lucide-react";
 
 import StatusChip from "./components/StatusChip";
@@ -19,22 +20,26 @@ import AlertCenter from "./components/AlertCenter";
 
 import { useNotifier } from "./hooks/useNotifier";
 
+// === PDF export libs ===
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+
 export default function App() {
   const [clock, setClock] = useState(dayjs().tz("Asia/Jakarta"));
 
   // ===== List & kontrol =====
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("ALL");
-  const [sortKey, setSortKey] = useState("score");
+  const [sortKey, setSortKey] = useState("score"); // 'score' = Prioritas
   const [sortDir, setSortDir] = useState("desc");
   const [data, setData] = useState({
     items: [],
     thresholds: { q33: 0, q66: 0 },
-    weights: { impact: 1, urgency: 1, effort: 1 },
+    weights: { impact: 1, urgency: 1, effort: 1 }, // tidak dipakai rumus baru
     summary: { total: 0, todo: 0, progress: 0, done: 0, overdue: 0, avg: 0 },
   });
 
-  // ===== Daftar semua tugas (TANPA FILTER) untuk deteksi overdue di AlertCenter =====
+  // ===== Semua tugas (tanpa filter) untuk Alert =====
   const [allForAlert, setAllForAlert] = useState([]);
 
   // ===== Modal & draft =====
@@ -44,21 +49,23 @@ export default function App() {
   const emptyForm = {
     title: "",
     desc: "",
-    impact: 3,
-    urgency: 3,
-    effort: 2,
+    regulasi: 3,
+    bisnis: 3,
+    resiko: 3,
+    efisiensi: 3,
     dueISO: "",
-    owner: "",
+    owner: "", // Product Owner (wajib)
+    picDev: "", // opsional
+    picSA: "", // opsional
+    quartal: "", // Q1/Q2/Q3/Q4 (opsional)
     tags: [],
-    status: "", // status sengaja kosong (placeholder)
+    status: "", // placeholder
     attachments: [],
   };
   const [formDraft, setFormDraft] = useState(emptyForm);
 
-  // ===== Pool kategori tambahan (sementara) =====
+  // ===== Kategori =====
   const [extraCats, setExtraCats] = useState([]);
-
-  // ===== Kategori dari tasks (in-use) =====
   const tagsFromTasks = useMemo(() => {
     const set = new Set();
     for (const t of data.items) {
@@ -84,24 +91,24 @@ export default function App() {
       : [];
   }, [formDraft.tags]);
 
-  const modalCategories = useMemo(() => {
-    return Array.from(
-      new Set([...tagsFromTasks, ...extraCats, ...tagsFromDraft])
-    ).sort();
-  }, [tagsFromTasks, extraCats, tagsFromDraft]);
+  const modalCategories = useMemo(
+    () =>
+      Array.from(
+        new Set([...tagsFromTasks, ...extraCats, ...tagsFromDraft])
+      ).sort(),
+    [tagsFromTasks, extraCats, tagsFromDraft]
+  );
 
   const inUseSet = useMemo(() => new Set(tagsFromTasks), [tagsFromTasks]);
   const isCatDeletable = (name) =>
     !inUseSet.has(name) && !tagsFromDraft.includes(name);
-
   const addCategory = (name) => {
     const n = name.trim();
     if (!n) return;
     setExtraCats((prev) => (prev.includes(n) ? prev : [...prev, n]));
   };
-  const deleteCategory = (name) => {
+  const deleteCategory = (name) =>
     setExtraCats((prev) => prev.filter((c) => c !== name));
-  };
 
   const [toast, notify] = useNotifier();
 
@@ -109,8 +116,6 @@ export default function App() {
     try {
       const r = await api.listTasks({ q, status, sortKey, sortDir });
       setData(r);
-
-      // muat semua tugas tanpa filter, agar deteksi overdue selalu akurat
       const all = await api.listTasks({
         q: "",
         status: "ALL",
@@ -121,7 +126,6 @@ export default function App() {
     } catch (e) {
       console.error("Gagal memuat tasks:", e);
       notify?.({ text: `Gagal memuat tugas: ${e.message}`, variant: "error" });
-      // jangan kosongkan data lama
     }
   };
 
@@ -133,13 +137,14 @@ export default function App() {
     load();
   }, [q, status, sortKey, sortDir]);
 
-  // ==== Bobot: slider only (range) ====
   const clamp = (v, min, max) => Math.max(min, Math.min(max, Number(v)));
   const setWeight = async (k, v) => {
     const val = clamp(v, 0.5, 3);
     const next = { ...data.weights, [k]: val };
     await api.setSettings(next);
-    notify("Bobot diperbarui.");
+    notify(
+      "Bobot diperbarui (catatan: rumus prioritas saat ini tidak memakai bobot)."
+    );
     load();
   };
   const resetWeights = async () => {
@@ -150,7 +155,7 @@ export default function App() {
 
   const openAdd = () => {
     setEditing(null);
-    setFormDraft({ ...emptyForm, attachments: [] }); // upload hanya di modal
+    setFormDraft({ ...emptyForm, attachments: [] });
     setModalOpen(true);
   };
 
@@ -167,18 +172,39 @@ export default function App() {
             .filter(Boolean)
         : [],
       attachments: Array.isArray(t.attachments) ? t.attachments : [],
+      regulasi: Number.isFinite(t.regulasi)
+        ? t.regulasi
+        : Number.isFinite(t.impact)
+        ? t.impact
+        : 3,
+      bisnis: Number.isFinite(t.bisnis)
+        ? t.bisnis
+        : Number.isFinite(t.urgency)
+        ? t.urgency
+        : 3,
+      resiko: Number.isFinite(t.resiko) ? t.resiko : 3,
+      efisiensi: Number.isFinite(t.efisiensi)
+        ? t.efisiensi
+        : Number.isFinite(t.effort)
+        ? t.effort
+        : 3,
+      picDev: t.picDev || "",
+      picSA: t.picSA || "",
+      quartal: t.quartal || "",
     });
     setModalOpen(true);
   };
 
-  const closeModal = () => {
-    setModalOpen(false);
-  };
+  const closeModal = () => setModalOpen(false);
 
   const onSubmit = async () => {
     const f = formDraft;
     if (!f.title?.trim()) return;
-    if (![f.impact, f.urgency, f.effort].every((n) => Number.isFinite(n)))
+    if (
+      ![f.regulasi, f.bisnis, f.resiko, f.efisiensi].every((n) =>
+        Number.isFinite(n)
+      )
+    )
       return;
     if (!f.dueISO) return;
     if (!f.owner?.trim()) return;
@@ -187,11 +213,15 @@ export default function App() {
     const payload = {
       title: f.title,
       desc: f.desc,
-      impact: f.impact,
-      urgency: f.urgency,
-      effort: f.effort,
+      regulasi: f.regulasi,
+      bisnis: f.bisnis,
+      resiko: f.resiko,
+      efisiensi: f.efisiensi,
       dueISO: f.dueISO,
       owner: f.owner,
+      picDev: f.picDev || "",
+      picSA: f.picSA || "",
+      quartal: f.quartal || "",
       tags: Array.isArray(f.tags)
         ? f.tags
         : f.tags
@@ -246,6 +276,66 @@ export default function App() {
     setOpenAttachId((prev) => (prev === id ? null : id));
   };
 
+  // ====== Export PDF (Chart + Table) ======
+  const chartCardRef = useRef(null);
+  const tableCardRef = useRef(null);
+  const [exporting, setExporting] = useState(false);
+
+  const addElementToPdf = async (pdf, el, startNewPage) => {
+    if (!el) return;
+    if (startNewPage) pdf.addPage();
+
+    const canvas = await html2canvas(el, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      windowWidth: document.documentElement.scrollWidth, // cegah terpotong
+    });
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = pdf.internal.pageSize.getHeight();
+    const imgW = canvas.width;
+    const imgH = canvas.height;
+
+    const renderH = (pdfW * imgH) / imgW; // skala proporsional ke lebar halaman
+
+    let heightLeft = renderH;
+    let position = 0;
+
+    pdf.addImage(imgData, "PNG", 0, position, pdfW, renderH);
+    heightLeft -= pdfH;
+    position = -pdfH;
+
+    while (heightLeft > 0) {
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, pdfW, renderH);
+      heightLeft -= pdfH;
+      position -= pdfH;
+    }
+  };
+
+  const exportPdf = async () => {
+    try {
+      setExporting(true);
+      const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+
+      // Halaman 1: Chart card
+      await addElementToPdf(pdf, chartCardRef.current, false);
+
+      // Halaman berikutnya: Table card (multi halaman jika perlu)
+      await addElementToPdf(pdf, tableCardRef.current, true);
+
+      pdf.save(`prioritas-dashboard_${dayjs().format("YYYYMMDD_HHmm")}.pdf`);
+    } catch (e) {
+      console.error("Export PDF gagal", e);
+      notify?.({ text: `Gagal ekspor PDF: ${e.message}`, variant: "error" });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b bg-white">
@@ -261,8 +351,6 @@ export default function App() {
               </strong>
             </div>
           </div>
-
-          {/* Tombol lonceng + pusat alert (pakai semua tugas, bukan yang terfilter) */}
           <AlertCenter tasks={allForAlert} onNotify={notify} />
         </div>
       </header>
@@ -285,14 +373,16 @@ export default function App() {
                 </div>
               </div>
               <div className="bg-slate-50 rounded-xl p-4">
-                <div className="text-sm text-slate-500">Rata-rata Skor</div>
+                <div className="text-sm text-slate-500">
+                  Rata-rata Prioritas
+                </div>
                 <div className="text-2xl font-bold mt-1">
                   {data.summary.avg?.toFixed?.(2) ?? "0.00"}
                 </div>
               </div>
               <div className="bg-slate-50 rounded-xl p-4">
                 <div className="text-sm text-slate-500">
-                  Status: Todo / Proses / Selesai
+                  Status: Waiting / On Progress / Done
                 </div>
                 <div className="text-xl font-semibold mt-1">
                   {data.summary.todo} / {data.summary.progress} /{" "}
@@ -313,79 +403,26 @@ export default function App() {
             </div>
           </section>
 
-          {/* Pengaturan Bobot */}
+          {/* Rumus */}
           <section className="card">
-            <h2 className="text-lg font-semibold mb-3">Pengaturan Bobot</h2>
-            <div className="text-xs text-slate-500">
-              Rumus: <code>(wI×Impact + wU×Urgensi) / max(Effort×wE, 1)</code>
+            <h2 className="text-lg font-semibold mb-3">Rumus Prioritas</h2>
+            <div className="text-sm text-slate-700">
+              <code>
+                Prioritas = (Regulasi + Bisnis + Resiko + Efisiensi) / 4
+              </code>
             </div>
-            <div className="grid grid-cols-3 gap-3 mt-3">
-              <div>
-                <div className="text-xs text-slate-600 mb-1">
-                  wI (Impact): {data.weights.impact}
-                </div>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="3"
-                  step="0.1"
-                  value={data.weights.impact}
-                  onChange={(e) => setWeight("impact", e.target.value)}
-                  className="w-full accent-sky-600"
-                  onKeyDown={(e) => e.preventDefault()}
-                />
-              </div>
-              <div>
-                <div className="text-xs text-slate-600 mb-1">
-                  wU (Urgensi): {data.weights.urgency}
-                </div>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="3"
-                  step="0.1"
-                  value={data.weights.urgency}
-                  onChange={(e) => setWeight("urgency", e.target.value)}
-                  className="w-full accent-sky-600"
-                  onKeyDown={(e) => e.preventDefault()}
-                />
-              </div>
-              <div>
-                <div className="text-xs text-slate-600 mb-1">
-                  wE (Effort): {data.weights.effort}
-                </div>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="3"
-                  step="0.1"
-                  value={data.weights.effort}
-                  onChange={(e) => setWeight("effort", e.target.value)}
-                  className="w-full accent-sky-600"
-                  onKeyDown={(e) => e.preventDefault()}
-                />
-              </div>
-            </div>
-            <div className="mt-3">
-              <button
-                className="btn"
-                onClick={async () => {
-                  await resetWeights();
-                }}
-              >
-                Reset Bobot
-              </button>
+            <div className="text-xs text-slate-500 mt-2">
+              Catatan: pengaturan bobot tidak digunakan pada rumus ini.
             </div>
           </section>
 
-          {/* Pie Chart Distribusi per Kategori */}
-          <section className="card">
+          {/* Pie Chart */}
+          <section className="card" ref={chartCardRef}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold">
                 Distribusi Status per Kategori
               </h2>
             </div>
-
             <div className="flex gap-2 mb-3">
               <button
                 className={`btn ${chartMode === "tag" ? "btn-primary" : ""}`}
@@ -397,15 +434,17 @@ export default function App() {
                 className={`btn ${chartMode === "owner" ? "btn-primary" : ""}`}
                 onClick={() => setChartMode("owner")}
               >
-                Penanggung Jawab
+                Product Owner
               </button>
             </div>
-
             <ChartBlock dataItems={data.items} chartMode={chartMode} />
           </section>
 
           {/* Daftar Tugas */}
-          <section className="card md:col-span-2 xl:col-span-3">
+          <section
+            className="card md:col-span-2 xl:col-span-3"
+            ref={tableCardRef}
+          >
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3 mb-4">
               <h2 className="text-lg font-semibold">Daftar Tugas</h2>
               <div className="flex flex-col sm:flex-row sm:items-end gap-2">
@@ -413,21 +452,34 @@ export default function App() {
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     className="input pl-9 w-full sm:w-80"
-                    placeholder="Cari judul / penanggung jawab / tag..."
+                    placeholder="Cari judul / product owner / tag..."
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                   />
                 </div>
                 <select
-                  className="select w-full sm:w-40"
+                  className="select w-full sm:w-44"
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                 >
                   <option value="ALL">Semua Status</option>
-                  <option>Todo</option>
-                  <option>Proses</option>
-                  <option>Selesai</option>
+                  <option>Waiting</option>
+                  <option>On Progress</option>
+                  <option>Continue</option>
+                  <option>Done</option>
                 </select>
+
+                {/* Export PDF */}
+                <button
+                  className="btn border border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100 focus:outline-none focus:ring-2 focus:ring-violet-300 transition-colors"
+                  onClick={exportPdf}
+                  disabled={exporting}
+                  title="Export Chart & Tabel ke PDF"
+                >
+                  <FileDown className="w-4 h-4" />
+                  {exporting ? "Mengekspor..." : "Export PDF"}
+                </button>
+
                 <button className="btn btn-primary" onClick={openAdd}>
                   <Plus className="w-4 h-4" /> Tambah Tugas
                 </button>
@@ -438,22 +490,12 @@ export default function App() {
               <table className="min-w-full text-sm">
                 <thead className="bg-slate-50">
                   <tr>
-                    {[
-                      "title",
-                      "impact",
-                      "urgency",
-                      "effort",
-                      "score",
-                      "status",
-                      "due",
-                    ].map((k) => {
+                    {["title", "score", "status", "quartal", "due"].map((k) => {
                       const titles = {
                         title: "Judul",
-                        impact: "Impact",
-                        urgency: "Urgensi",
-                        effort: "Effort",
-                        score: "Skor",
+                        score: "Prioritas",
                         status: "Status",
+                        quartal: "Quartal",
                         due: "Jatuh Tempo",
                       };
                       const onClick = () => {
@@ -488,7 +530,7 @@ export default function App() {
                   {data.items.length === 0 && (
                     <tr>
                       <td
-                        colSpan={8}
+                        colSpan={6}
                         className="text-slate-500 text-center p-6"
                       >
                         Tidak ada tugas yang cocok.
@@ -504,24 +546,50 @@ export default function App() {
                             {t.desc}
                           </div>
                         )}
-                        {t.owner && (
+                        {(t.owner || t.picDev || t.picSA) && (
                           <div className="text-xs text-slate-500 mt-0.5">
-                            PJ: <span className="font-medium">{t.owner}</span>
+                            {t.owner && (
+                              <>
+                                PO:{" "}
+                                <span className="font-medium">{t.owner}</span>
+                              </>
+                            )}
+                            {t.picDev && (
+                              <>
+                                {" "}
+                                • Dev:{" "}
+                                <span className="font-medium">{t.picDev}</span>
+                              </>
+                            )}
+                            {t.picSA && (
+                              <>
+                                {" "}
+                                • SA:{" "}
+                                <span className="font-medium">{t.picSA}</span>
+                              </>
+                            )}
                           </div>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-center">{t.impact}</td>
-                      <td className="px-3 py-2 text-center">{t.urgency}</td>
-                      <td className="px-3 py-2 text-center">{t.effort}</td>
+
+                      {/* Prioritas Badge */}
                       <td className="px-3 py-2 text-center">
-                        <PriorityBadge
-                          label={t.priorityLabel}
-                          score={t.score}
-                        />
+                        <div className="flex items-center justify-center">
+                          <PriorityBadge
+                            label={t.priorityLabel}
+                            score={t.score}
+                          />
+                        </div>
                       </td>
+
                       <td className="px-3 py-2 text-center">
                         <StatusChip status={t.status} />
                       </td>
+
+                      <td className="px-3 py-2 text-center">
+                        {t.quartal || "—"}
+                      </td>
+
                       <td className="px-3 py-2">
                         <div>
                           {t.dueISO
@@ -536,13 +604,14 @@ export default function App() {
                           )}
                         </div>
                       </td>
+
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
                           <button className="btn" onClick={() => openEdit(t)}>
                             <Edit3 className="w-4 h-4" /> Edit
                           </button>
 
-                          {/* Tombol Lampiran/Download (muncul jika ada attachments) */}
+                          {/* Lampiran */}
                           {Array.isArray(t.attachments) &&
                             t.attachments.length > 0 && (
                               <div
@@ -551,7 +620,12 @@ export default function App() {
                               >
                                 <button
                                   className="btn border border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 focus:outline-none focus:ring-2 focus:ring-sky-300 transition-colors"
-                                  onClick={(e) => toggleAttach(e, t.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenAttachId((prev) =>
+                                      prev === t.id ? null : t.id
+                                    );
+                                  }}
                                   aria-label="Lihat & unduh lampiran"
                                 >
                                   <Paperclip className="w-4 h-4" />
@@ -594,7 +668,7 @@ export default function App() {
                               </div>
                             )}
 
-                          {/* Selesai: hijau lembut */}
+                          {/* Selesai */}
                           <button
                             className="btn border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-300 transition-colors"
                             onClick={() => markDone(t.id, t.title)}
@@ -602,7 +676,7 @@ export default function App() {
                             <CheckCircle2 className="w-4 h-4" /> Selesai
                           </button>
 
-                          {/* Hapus: merah lembut */}
+                          {/* Hapus */}
                           <button
                             className="btn border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-300 transition-colors"
                             onClick={() => remove(t.id)}
@@ -620,7 +694,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* Toast (termasuk Overdue: merah) */}
+      {/* Toast */}
       {toast?.text && (
         <div
           className={`fixed left-1/2 bottom-6 -translate-x-1/2 text-sm px-4 py-2 rounded-full shadow z-[200]

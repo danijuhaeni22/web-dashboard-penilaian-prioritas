@@ -44,9 +44,17 @@
     "tags": [
       "dev"
     ],
-    "status": "Proses",
+    "status": "Continue",
     "createdAtISO": "2025-09-01T06:16:13.197Z",
-    "updatedAtISO": "2025-09-01T06:16:13.197Z"
+    "updatedAtISO": "2025-09-02T12:55:55.251Z",
+    "regulasi": 4,
+    "bisnis": 4,
+    "resiko": 3,
+    "efisiensi": 5,
+    "picDev": "",
+    "picSA": "",
+    "quartal": "",
+    "attachments": []
   },
   {
     "id": "Txipiux6krri",
@@ -145,9 +153,39 @@
       "dev",
       "srs"
     ],
-    "status": "Selesai",
+    "status": "Continue",
     "createdAtISO": "2025-09-02T01:39:31.195Z",
-    "updatedAtISO": "2025-09-02T01:40:14.153Z"
+    "updatedAtISO": "2025-09-02T12:55:45.172Z",
+    "regulasi": 5,
+    "bisnis": 5,
+    "resiko": 5,
+    "efisiensi": 5,
+    "picDev": "Rudi",
+    "picSA": "Darwin",
+    "attachments": [
+      {
+        "id": "1756813256678_Group_1_-_Final_Presentation.pdf",
+        "name": "Group 1 - Final Presentation.pdf",
+        "type": "application/pdf",
+        "size": 43019921,
+        "uploadedAt": "2025-09-02T11:40:57.101Z"
+      },
+      {
+        "id": "1756813305306_porto.jpg",
+        "name": "porto.jpg",
+        "type": "image/jpeg",
+        "size": 2745275,
+        "uploadedAt": "2025-09-02T11:41:45.353Z"
+      },
+      {
+        "id": "1756813320349_CV_Ni_Putu_Trisna_Ristanti_Format_Contoh.docx",
+        "name": "CV_Ni_Putu_Trisna_Ristanti_Format_Contoh.docx",
+        "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "size": 37494,
+        "uploadedAt": "2025-09-02T11:42:00.354Z"
+      }
+    ],
+    "quartal": "Q1"
   },
   {
     "id": "T0bv5k7h2gw2",
@@ -236,7 +274,9 @@
     "effort": 2,
     "dueISO": "2025-09-02T04:51:00.000Z",
     "owner": "Dani",
-    "tags": [],
+    "tags": [
+      "srs"
+    ],
     "status": "Proses",
     "attachments": [
       {
@@ -262,6 +302,8 @@
       }
     ],
     "createdAtISO": "2025-09-02T03:51:52.288Z",
-    "updatedAtISO": "2025-09-02T04:04:30.813Z"
+    "updatedAtISO": "2025-09-02T10:46:42.589Z",
+    "picDev": "Budi",
+    "picSA": "Andi"
   }
 ]

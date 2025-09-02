@@ -1,33 +1,45 @@
-import { clamp15 } from './utils.js';
+// Perhitungan skor prioritas baru:
+// PRIORITAS = ((Regulasi + Bisnis + Resiko + Efisiensi) / 4)
+// Dibulatkan ke 2 desimal
 
-export function computePriority(task, weights) {
-  const wi = Number(weights.impact) || 1;
-  const wu = Number(weights.urgency) || 1;
-  const we = Number(weights.effort) || 1;
-  const impact = clamp15(task.impact);
-  const urgency = clamp15(task.urgency);
-  const effortRaw = clamp15(task.effort);
-  const denom = Math.max(effortRaw * we, 1);
-  const score = (wi*impact + wu*urgency) / denom;
-  return Math.round(score * 100) / 100;
+import { clamp15 } from "./utils.js";
+
+/**
+ * Komputasi prioritas berdasarkan 4 faktor (1-5).
+ * Tetap menerima `weights` agar kompatibel dengan pemanggil lama,
+ * namun diabaikan (rumus ini tanpa bobot).
+ */
+export function computePriority(task /*, weights */) {
+  // Fallback untuk data lama:
+  // - regulasi -> fallback ke impact
+  // - bisnis   -> fallback ke urgency
+  // - resiko   -> default 3 (jika tak ada)
+  // - efisiensi-> fallback ke effort
+  const r = clamp15(task.regulasi ?? task.impact ?? 3);
+  const b = clamp15(task.bisnis ?? task.urgency ?? 3);
+  const rs = clamp15(task.resiko ?? 3);
+  const ef = clamp15(task.efisiensi ?? task.effort ?? 3);
+
+  const avg = (r + b + rs + ef) / 4;
+  return Math.round(avg * 100) / 100;
 }
 
-export function thresholdsFromScores(scores) {
-  if (!scores.length) return { q33: 0, q66: 0 };
-  const sorted = scores.slice().sort((a,b)=>a-b);
-  const q = (p) => {
-    const idx = (sorted.length - 1) * p;
-    const lo = Math.floor(idx), hi = Math.ceil(idx);
-    if (lo === hi) return sorted[lo];
-    const h = idx - lo;
-    return sorted[lo] * (1 - h) + sorted[hi] * h;
-  };
-  return { q33: q(1/3), q66: q(2/3) };
+/**
+ * Hitung threshold kuantil sederhana dari array skor (untuk badge).
+ */
+export function thresholdsFromScores(scores = []) {
+  const s = [...scores].sort((a, b) => a - b);
+  if (s.length === 0) return { q33: 0, q66: 0 };
+  const pick = (p) =>
+    s[Math.min(s.length - 1, Math.max(0, Math.floor((s.length - 1) * p)))];
+  return { q33: pick(0.33), q66: pick(0.66) };
 }
 
-export function labelForScore(score, thresholds) {
-  const { q33, q66 } = thresholds;
-  if (score >= q66) return 'Tinggi';
-  if (score >= q33) return 'Sedang';
-  return 'Rendah';
+/**
+ * Label berdasarkan threshold (Tinggi / Sedang / Rendah).
+ */
+export function labelForScore(score, { q33, q66 }) {
+  if (score >= q66) return "Tinggi";
+  if (score >= q33) return "Sedang";
+  return "Rendah";
 }

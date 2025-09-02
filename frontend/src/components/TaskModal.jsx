@@ -54,17 +54,15 @@ export default function TaskModal({
     if (!file) return;
     try {
       setUploading(true);
-      const meta = await api.files.upload(file); // {id,name,type,size,uploadedAt}
+      const meta = await api.files.upload(file);
       set("attachments", [...(form?.attachments || []), meta]);
     } catch (e) {
-      const msg = e?.message || "Gagal mengunggah file.";
-      alert(msg);
+      alert(e?.message || "Gagal mengunggah file.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
-
 
   const onInputFile = (e) => doUpload(e.target.files?.[0]);
   const onDrop = (e) => {
@@ -87,14 +85,13 @@ export default function TaskModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      {/* Container modal dibuat relative agar tombol X absolute bisa ditempatkan di pojok kanan */}
       <div
         className="modal relative overflow-visible max-h-[90vh] overflow-y-auto w-full max-w-3xl rounded-2xl bg-white shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modalTitle"
       >
-        {/* Tombol X pojok kanan atas */}
+        {/* X kanan atas */}
         <button
           type="button"
           onClick={onClose}
@@ -105,7 +102,6 @@ export default function TaskModal({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Header */}
         <div className="modal-header sticky top-0 z-[105] bg-white/95 backdrop-blur border-b rounded-t-2xl">
           <div className="flex items-center justify-center px-5 py-3">
             <h3 id="modalTitle" className="modal-title flex items-center gap-2">
@@ -142,55 +138,74 @@ export default function TaskModal({
               />
             </label>
 
-            <div className="grid md:grid-cols-3 gap-3">
+            {/* Empat faktor 1–5 */}
+            <div className="grid md:grid-cols-2 gap-3">
               <label className="text-sm">
-                Impact (1–5) <span className="text-red-600">*</span>
+                Regulasi (1–5) <span className="text-red-600">*</span>
                 <div className="flex items-center gap-3 mt-1">
                   <input
                     type="range"
                     min="1"
                     max="5"
                     step="1"
-                    value={form?.impact ?? 3}
-                    onChange={(e) => set("impact", Number(e.target.value))}
-                    className="w-full accent-sky-600"
-                    onKeyDown={(e) => e.preventDefault()}
-                  />
-                  <span className="badge badge-amber">{form?.impact ?? 3}</span>
-                </div>
-              </label>
-              <label className="text-sm">
-                Urgensi (1–5) <span className="text-red-600">*</span>
-                <div className="flex items-center gap-3 mt-1">
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    step="1"
-                    value={form?.urgency ?? 3}
-                    onChange={(e) => set("urgency", Number(e.target.value))}
+                    value={form?.regulasi ?? 3}
+                    onChange={(e) => set("regulasi", Number(e.target.value))}
                     className="w-full accent-sky-600"
                     onKeyDown={(e) => e.preventDefault()}
                   />
                   <span className="badge badge-amber">
-                    {form?.urgency ?? 3}
+                    {form?.regulasi ?? 3}
                   </span>
                 </div>
               </label>
               <label className="text-sm">
-                Effort (1–5) <span className="text-red-600">*</span>
+                Bisnis (1–5) <span className="text-red-600">*</span>
                 <div className="flex items-center gap-3 mt-1">
                   <input
                     type="range"
                     min="1"
                     max="5"
                     step="1"
-                    value={form?.effort ?? 2}
-                    onChange={(e) => set("effort", Number(e.target.value))}
+                    value={form?.bisnis ?? 3}
+                    onChange={(e) => set("bisnis", Number(e.target.value))}
                     className="w-full accent-sky-600"
                     onKeyDown={(e) => e.preventDefault()}
                   />
-                  <span className="badge badge-amber">{form?.effort ?? 2}</span>
+                  <span className="badge badge-amber">{form?.bisnis ?? 3}</span>
+                </div>
+              </label>
+              <label className="text-sm">
+                Resiko (1–5) <span className="text-red-600">*</span>
+                <div className="flex items-center gap-3 mt-1">
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    step="1"
+                    value={form?.resiko ?? 3}
+                    onChange={(e) => set("resiko", Number(e.target.value))}
+                    className="w-full accent-sky-600"
+                    onKeyDown={(e) => e.preventDefault()}
+                  />
+                  <span className="badge badge-amber">{form?.resiko ?? 3}</span>
+                </div>
+              </label>
+              <label className="text-sm">
+                Efisiensi (1–5) <span className="text-red-600">*</span>
+                <div className="flex items-center gap-3 mt-1">
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    step="1"
+                    value={form?.efisiensi ?? 3}
+                    onChange={(e) => set("efisiensi", Number(e.target.value))}
+                    className="w-full accent-sky-600"
+                    onKeyDown={(e) => e.preventDefault()}
+                  />
+                  <span className="badge badge-amber">
+                    {form?.efisiensi ?? 3}
+                  </span>
                 </div>
               </label>
             </div>
@@ -214,7 +229,7 @@ export default function TaskModal({
                         : "Belum dipilih"}
                     </div>
                     <div className="text-xs text-slate-500 mt-1">
-                      Wajib diisi. Klik “Pilih” untuk memilih tanggal & jam.
+                      Wajib diisi. Klik “Pilih”.
                     </div>
                   </div>
                   <button
@@ -226,20 +241,43 @@ export default function TaskModal({
                   </button>
                 </div>
               </label>
+
               <label className="text-sm">
-                Penanggung Jawab <span className="text-red-600">*</span>
+                Product Owner <span className="text-red-600">*</span>
                 <input
                   className="input mt-1"
                   value={form?.owner ?? ""}
                   onChange={(e) => set("owner", e.target.value)}
-                  placeholder="Contoh: Andi"
+                  placeholder="Nama Product Owner"
                   required
                 />
               </label>
             </div>
 
-            {/* Kategori + Status */}
+            {/* PICs */}
             <div className="grid md:grid-cols-2 gap-3">
+              <label className="text-sm">
+                PIC Development
+                <input
+                  className="input mt-1"
+                  value={form?.picDev ?? ""}
+                  onChange={(e) => set("picDev", e.target.value)}
+                  placeholder="Nama PIC Development"
+                />
+              </label>
+              <label className="text-sm">
+                PIC System Analyst
+                <input
+                  className="input mt-1"
+                  value={form?.picSA ?? ""}
+                  onChange={(e) => set("picSA", e.target.value)}
+                  placeholder="Nama PIC System Analyst"
+                />
+              </label>
+            </div>
+
+            {/* Kategori + Status + Quartal */}
+            <div className="grid md:grid-cols-3 gap-3">
               <div className="text-sm relative z-[108] overflow-visible">
                 <div className="mb-1">Kategori / Tag</div>
                 <CategoryMultiSelect
@@ -265,7 +303,6 @@ export default function TaskModal({
                 <label className="block mb-1">
                   Status <span className="text-red-600">*</span>
                 </label>
-                {/* Hidden input agar validasi native 'required' tetap jalan saat value kosong */}
                 <input
                   type="hidden"
                   required
@@ -273,16 +310,27 @@ export default function TaskModal({
                   onChange={() => {}}
                 />
                 <SelectField
-                  options={["Todo", "Proses", "Selesai"]}
+                  options={["Waiting", "On Progress", "Continue", "Done"]} // ⬅️ tambahkan Continue
                   value={form?.status || ""}
                   onChange={(val) => set("status", val)}
                   placeholder="pilih status tugas"
                   searchable={false}
                 />
               </div>
+
+              <div className="text-sm relative z-[109] overflow-visible">
+                <label className="block mb-1">Quartal</label>
+                <SelectField
+                  options={["Q1", "Q2", "Q3", "Q4"]}
+                  value={form?.quartal || ""}
+                  onChange={(val) => set("quartal", val)}
+                  placeholder="pilih quartal"
+                  searchable={false}
+                />
+              </div>
             </div>
 
-            {/* Lampiran (opsional) */}
+            {/* Lampiran */}
             <div className="text-sm">
               <div className="mb-1">Lampiran (opsional)</div>
               <div
@@ -373,8 +421,7 @@ export default function TaskModal({
                 </ul>
               )}
               <div className="text-xs text-slate-400 mt-2">
-                Catatan: Lampiran tidak wajib. Anda tetap bisa menyimpan tugas
-                tanpa mengunggah file.
+                Lampiran tidak wajib.
               </div>
             </div>
 

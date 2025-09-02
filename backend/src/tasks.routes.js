@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "./db.js";
-import { nowISO, clamp15, parseTags, uid } from "./utils.js"; // ⬅️ sudah include uid
+import { nowISO, clamp15, parseTags, uid } from "./utils.js";
 import { dayjs } from "./utils.js";
 import {
   computePriority,
@@ -9,28 +9,53 @@ import {
 } from "./scoring.js";
 
 const router = Router();
-const ALLOWED_STATUS = new Set(["Todo", "Proses", "Selesai"]);
+
+// ===== Status baru + normalisasi dari status lama =====
+const STATUS_MAP = {
+  // lama -> baru
+  Todo: "Waiting",
+  Proses: "On Progress",
+  Selesai: "Done",
+  // baru -> baru
+  Waiting: "Waiting",
+  "On Progress": "On Progress",
+  Continue: "Continue",
+  Done: "Done",
+};
+const normalizeStatus = (s) => STATUS_MAP[s] || "Waiting";
+const ALLOWED_STATUS = new Set(["Waiting", "On Progress", "Continue", "Done"]);
+
+const ALLOWED_QUARTAL = new Set(["Q1", "Q2", "Q3", "Q4"]);
 
 function isOverdue(t) {
-  if (!t.dueISO || t.status === "Selesai") return false;
+  if (!t.dueISO || normalizeStatus(t.status) === "Done") return false;
   return dayjs(t.dueISO).isBefore(dayjs());
 }
 
-// ⬇️ Ditambah dukungan attachments (array meta file dari /api/files)
+// === Input: regulasi, bisnis, resiko, efisiensi + quartal + status baru
 function sanitizeTaskInput(body) {
   const t = {};
   t.title = String(body.title || "").trim();
   t.desc = String(body.desc || "").trim();
-  t.impact = clamp15(body.impact ?? 3);
-  t.urgency = clamp15(body.urgency ?? 3);
-  t.effort = clamp15(body.effort ?? 2);
+
+  t.regulasi = clamp15(body.regulasi ?? body.impact ?? 3);
+  t.bisnis = clamp15(body.bisnis ?? body.urgency ?? 3);
+  t.resiko = clamp15(body.resiko ?? 3);
+  t.efisiensi = clamp15(body.efisiensi ?? body.effort ?? 3);
+
   t.dueISO = body.dueISO || null;
-  t.owner = String(body.owner || "").trim();
+  t.owner = String(body.owner || "").trim(); // Product Owner
+  t.picDev = String(body.picDev || "").trim(); // PIC Dev
+  t.picSA = String(body.picSA || "").trim(); // PIC SA
+  t.quartal = ALLOWED_QUARTAL.has(body.quartal) ? body.quartal : "";
+
   t.tags = Array.isArray(body.tags)
     ? body.tags.filter(Boolean)
     : parseTags(body.tags || "");
-  t.status = ALLOWED_STATUS.has(body.status) ? body.status : "Todo";
-  // 🆕 attachments: selalu array
+
+  const ns = normalizeStatus(body.status);
+  t.status = ALLOWED_STATUS.has(ns) ? ns : "Waiting";
+
   t.attachments = Array.isArray(body.attachments) ? body.attachments : [];
   return t;
 }
@@ -42,6 +67,7 @@ router.get("/", (req, res) => {
     sortKey = "score",
     sortDir = "desc",
   } = req.query;
+
   const weights = db.data.settings.weights || {
     impact: 1,
     urgency: 1,
@@ -50,7 +76,10 @@ router.get("/", (req, res) => {
 
   // Filter
   let tasks = db.data.tasks.slice();
-  if (status !== "ALL") tasks = tasks.filter((t) => t.status === status);
+  if (status !== "ALL") {
+    const want = normalizeStatus(status);
+    tasks = tasks.filter((t) => normalizeStatus(t.status) === want);
+  }
   const qTokens = String(q).toLowerCase().split(/\s+/).filter(Boolean);
   if (qTokens.length) {
     tasks = tasks.filter((t) => {
@@ -69,7 +98,7 @@ router.get("/", (req, res) => {
     const score = computePriority(t, weights);
     return {
       ...t,
-      // 🆕 pastikan selalu ada array attachments agar frontend bisa menampilkan tombol Download
+      status: normalizeStatus(t.status),
       attachments: Array.isArray(t.attachments) ? t.attachments : [],
       score,
       priorityLabel: labelForScore(score, thresholds),
@@ -83,36 +112,45 @@ router.get("/", (req, res) => {
     let va, vb;
     switch (sortKey) {
       case "title":
-        va = a.title.toLowerCase();
-        vb = b.title.toLowerCase();
+        va = (a.title || "").toLowerCase();
+        vb = (b.title || "").toLowerCase();
         break;
-      case "impact":
-        va = a.impact;
-        vb = b.impact;
+      case "regulasi":
+        va = a.regulasi ?? 0;
+        vb = b.regulasi ?? 0;
         break;
-      case "urgency":
-        va = a.urgency;
-        vb = b.urgency;
+      case "bisnis":
+        va = a.bisnis ?? 0;
+        vb = b.bisnis ?? 0;
         break;
-      case "effort":
-        va = a.effort;
-        vb = b.effort;
+      case "resiko":
+        va = a.resiko ?? 0;
+        vb = b.resiko ?? 0;
         break;
+      case "efisiensi":
+        va = a.efisiensi ?? 0;
+        vb = b.efisiensi ?? 0;
+        break;
+      case "quartal": {
+        const orderQ = { "": 0, Q1: 1, Q2: 2, Q3: 3, Q4: 4 };
+        va = orderQ[a.quartal || ""] ?? 0;
+        vb = orderQ[b.quartal || ""] ?? 0;
+        break;
+      }
       case "score":
-        va = a.score;
-        vb = b.score;
+        va = a.score ?? 0;
+        vb = b.score ?? 0;
         break;
       case "status": {
-        const order = { Todo: 0, Proses: 1, Selesai: 2 };
+        const order = { Waiting: 0, "On Progress": 1, Continue: 2, Done: 3 };
         va = order[a.status] ?? 9;
         vb = order[b.status] ?? 9;
         break;
       }
-      case "due": {
+      case "due":
         va = a.dueISO ? dayjs(a.dueISO).valueOf() : Infinity;
         vb = b.dueISO ? dayjs(b.dueISO).valueOf() : Infinity;
         break;
-      }
       default:
         va = 0;
         vb = 0;
@@ -122,11 +160,17 @@ router.get("/", (req, res) => {
     return 0;
   });
 
-  // Summary
+  // Summary (tetap tiga kolom utama seperti UI kamu)
+  const waiting = db.data.tasks.filter(
+    (t) => normalizeStatus(t.status) === "Waiting"
+  ).length;
+  const progress = db.data.tasks.filter(
+    (t) => normalizeStatus(t.status) === "On Progress"
+  ).length;
+  const done = db.data.tasks.filter(
+    (t) => normalizeStatus(t.status) === "Done"
+  ).length;
   const total = db.data.tasks.length;
-  const todo = db.data.tasks.filter((t) => t.status === "Todo").length;
-  const progress = db.data.tasks.filter((t) => t.status === "Proses").length;
-  const done = db.data.tasks.filter((t) => t.status === "Selesai").length;
   const overdue = db.data.tasks.filter(isOverdue).length;
   const avg = total
     ? Math.round(
@@ -140,24 +184,20 @@ router.get("/", (req, res) => {
     items,
     thresholds,
     weights,
-    summary: { total, todo, progress, done, overdue, avg },
+    summary: { total, todo: waiting, progress, done, overdue, avg },
   });
 });
 
 router.post("/", (req, res) => {
   const t = sanitizeTaskInput(req.body || {});
   if (!t.title) return res.status(400).json({ error: "Judul wajib" });
+  if (!t.dueISO) return res.status(400).json({ error: "dueISO wajib" });
+  if (!t.owner) return res.status(400).json({ error: "Product Owner wajib" });
+  if (!t.status) return res.status(400).json({ error: "status wajib" });
 
   const id = uid();
   const now = nowISO();
-  const task = {
-    id,
-    ...t,
-    // 🆕 simpan attachments ke DB
-    attachments: Array.isArray(t.attachments) ? t.attachments : [],
-    createdAtISO: now,
-    updatedAtISO: now,
-  };
+  const task = { id, ...t, createdAtISO: now, updatedAtISO: now };
   db.data.tasks.push(task);
   db.save();
   res.status(201).json(task);
@@ -169,8 +209,6 @@ router.put("/:id", (req, res) => {
   if (idx === -1) return res.status(404).json({ error: "Not found" });
 
   const prev = db.data.tasks[idx];
-
-  // ⬇️ kita butuh tahu apakah client mengirim field attachments atau tidak
   const incoming = req.body || {};
   const hasAttachments = Object.prototype.hasOwnProperty.call(
     incoming,
@@ -178,15 +216,9 @@ router.put("/:id", (req, res) => {
   );
 
   const t = sanitizeTaskInput(incoming);
+  const updated = { ...prev, ...t, updatedAtISO: nowISO() };
 
-  // Base merge
-  const updated = {
-    ...prev,
-    ...t,
-    updatedAtISO: nowISO(),
-  };
-
-  // 🆕 Jika client TIDAK mengirim attachments, pertahankan yang lama
+  // Pertahankan lampiran lama jika tidak dikirim
   updated.attachments = hasAttachments
     ? Array.isArray(t.attachments)
       ? t.attachments
@@ -204,7 +236,7 @@ router.patch("/:id/done", (req, res) => {
   const id = req.params.id;
   const t = db.data.tasks.find((x) => x.id === id);
   if (!t) return res.status(404).json({ error: "Not found" });
-  t.status = "Selesai";
+  t.status = "Done";
   t.updatedAtISO = nowISO();
   db.save();
   res.json(t);
