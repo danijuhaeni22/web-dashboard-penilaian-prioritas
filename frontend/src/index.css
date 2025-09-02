@@ -1,0 +1,60 @@
+/* @config "./tailwind.config.js"; */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-card p-5;
+  }
+  .btn {
+    @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium border border-slate-200 shadow-sm hover:shadow transition;
+  }
+  .btn-primary {
+    @apply text-white bg-sky-600 hover:bg-sky-700 border-sky-600;
+  }
+  .btn-ghost {
+    @apply bg-slate-100 hover:bg-slate-200 text-slate-700;
+  }
+  .input {
+    @apply block w-full rounded-lg border-slate-300 focus:border-sky-500 focus:ring-sky-500;
+  }
+  .select {
+    @apply block w-full rounded-lg border-slate-300 focus:border-sky-500 focus:ring-sky-500;
+  }
+  .badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold;
+  }
+  .badge-red {
+    @apply bg-red-100 text-red-700;
+  }
+  .badge-amber {
+    @apply bg-amber-100 text-amber-700;
+  }
+  .badge-green {
+    @apply bg-green-100 text-green-700;
+  }
+  .chip {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700;
+  }
+}
+
+/* Modal */
+.modal-backdrop {
+  @apply fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4;
+}
+.modal {
+  @apply bg-white w-full max-w-2xl rounded-2xl shadow-xl;
+}
+.modal-header {
+  @apply flex items-center justify-between px-5 py-3 border-b;
+}
+.modal-title {
+  @apply flex items-center gap-2 font-extrabold text-lg;
+}
+.modal-body {
+  @apply p-5;
+}
+.modal-actions {
+  @apply flex gap-2 mt-2;
+}
