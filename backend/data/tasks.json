@@ -1,309 +1,136 @@
 [
   {
-    "id": "T776cl1ab670",
-    "title": "Pembuatan aplikasi Penilaian Prioritas",
-    "desc": "Sesuaikan bobot nya dengan rumus",
-    "impact": 5,
-    "urgency": 4,
-    "effort": 3,
-    "dueISO": "2025-09-15T05:00:00.000Z",
-    "owner": "Dani",
-    "tags": [
-      "dev"
-    ],
-    "status": "Selesai",
-    "createdAtISO": "2025-09-01T05:22:57.180Z",
-    "updatedAtISO": "2025-09-02T04:12:44.614Z",
-    "attachments": []
-  },
-  {
-    "id": "T5kap2qtczil",
-    "title": "Perbaikan Server",
-    "desc": "bla bla bla ...",
-    "impact": 4,
-    "urgency": 2,
-    "effort": 4,
-    "dueISO": "2025-09-10T05:00:00.000Z",
-    "owner": "Dani",
-    "tags": [
-      "Server"
-    ],
-    "status": "Proses",
-    "createdAtISO": "2025-09-01T05:52:21.453Z",
-    "updatedAtISO": "2025-09-01T05:52:21.453Z"
-  },
-  {
-    "id": "Tf14qm437o98",
-    "title": "Pembuatan Aplikasi buat Keuangan",
-    "desc": "bla bla bla ...",
-    "impact": 4,
-    "urgency": 4,
-    "effort": 5,
-    "dueISO": "2025-09-11T09:00:00.000Z",
-    "owner": "Dani",
-    "tags": [
-      "dev"
-    ],
-    "status": "Continue",
-    "createdAtISO": "2025-09-01T06:16:13.197Z",
-    "updatedAtISO": "2025-09-02T12:55:55.251Z",
-    "regulasi": 4,
-    "bisnis": 4,
-    "resiko": 3,
-    "efisiensi": 5,
-    "picDev": "",
-    "picSA": "",
-    "quartal": "",
-    "attachments": []
-  },
-  {
-    "id": "Txipiux6krri",
-    "title": "Buat SRS Aplikasi",
-    "desc": "bla .bla bla ..",
-    "impact": 3,
-    "urgency": 3,
-    "effort": 2,
-    "dueISO": "2025-09-10T05:00:00.000Z",
-    "owner": "Trisna",
-    "tags": [
-      "srs"
-    ],
-    "status": "Selesai",
-    "createdAtISO": "2025-09-01T06:26:24.270Z",
-    "updatedAtISO": "2025-09-02T01:10:17.004Z"
-  },
-  {
-    "id": "T47pig01v6vo",
-    "title": "Buat dokumen aplikasi HR",
-    "desc": "bla bal bla",
-    "impact": 4,
-    "urgency": 2,
-    "effort": 3,
-    "dueISO": "2025-09-10T08:00:00.000Z",
-    "owner": "Trisna",
-    "tags": [
-      "srs"
-    ],
-    "status": "Proses",
-    "createdAtISO": "2025-09-01T07:58:29.268Z",
-    "updatedAtISO": "2025-09-01T07:58:29.268Z"
-  },
-  {
-    "id": "T40zh8hx0fy1",
-    "title": "Perbaikan Server Dashboard",
-    "desc": "tes",
-    "impact": 3,
-    "urgency": 3,
-    "effort": 2,
-    "dueISO": "2025-09-02T01:27:00.000Z",
-    "owner": "Dani",
-    "tags": [
-      "Server",
-      "dev"
-    ],
-    "status": "Proses",
-    "createdAtISO": "2025-09-02T01:18:20.090Z",
-    "updatedAtISO": "2025-09-02T01:45:58.024Z"
-  },
-  {
-    "id": "Tqeczo4mabd9",
-    "title": "Pembuatan SRS untuk Server",
-    "desc": "tes",
-    "impact": 3,
-    "urgency": 3,
-    "effort": 2,
-    "dueISO": "2025-09-02T01:27:00.000Z",
-    "owner": "Trisna",
-    "tags": [
-      "srs",
-      "Server"
-    ],
-    "status": "Proses",
-    "createdAtISO": "2025-09-02T01:26:00.718Z",
-    "updatedAtISO": "2025-09-02T01:57:58.367Z"
-  },
-  {
-    "id": "Tm8pk4r2av7r",
-    "title": "tes selesai",
-    "desc": "tes",
-    "impact": 3,
-    "urgency": 3,
-    "effort": 2,
-    "dueISO": "2025-09-02T01:27:00.000Z",
-    "owner": "tes",
-    "tags": [
-      "Server",
-      "srs"
-    ],
-    "status": "Proses",
-    "createdAtISO": "2025-09-02T01:26:26.439Z",
-    "updatedAtISO": "2025-09-02T02:19:47.405Z"
-  },
-  {
-    "id": "Ty3sh38kroqj",
-    "title": "tes lagi lagi",
-    "desc": "tes lagi lagi",
-    "impact": 5,
-    "urgency": 5,
-    "effort": 5,
-    "dueISO": "2025-09-03T03:10:00.000Z",
-    "owner": "dani 2",
-    "tags": [
-      "Server",
-      "dev",
-      "srs"
-    ],
-    "status": "Continue",
-    "createdAtISO": "2025-09-02T01:39:31.195Z",
-    "updatedAtISO": "2025-09-02T12:55:45.172Z",
+    "id": "Th3aa09ik79v",
+    "title": "Tugas 1 Monitoring",
+    "desc": "",
     "regulasi": 5,
     "bisnis": 5,
     "resiko": 5,
-    "efisiensi": 5,
-    "picDev": "Rudi",
-    "picSA": "Darwin",
-    "attachments": [
-      {
-        "id": "1756813256678_Group_1_-_Final_Presentation.pdf",
-        "name": "Group 1 - Final Presentation.pdf",
-        "type": "application/pdf",
-        "size": 43019921,
-        "uploadedAt": "2025-09-02T11:40:57.101Z"
-      },
-      {
-        "id": "1756813305306_porto.jpg",
-        "name": "porto.jpg",
-        "type": "image/jpeg",
-        "size": 2745275,
-        "uploadedAt": "2025-09-02T11:41:45.353Z"
-      },
-      {
-        "id": "1756813320349_CV_Ni_Putu_Trisna_Ristanti_Format_Contoh.docx",
-        "name": "CV_Ni_Putu_Trisna_Ristanti_Format_Contoh.docx",
-        "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "size": 37494,
-        "uploadedAt": "2025-09-02T11:42:00.354Z"
-      }
-    ],
-    "quartal": "Q1"
-  },
-  {
-    "id": "T0bv5k7h2gw2",
-    "title": "Perbaiki Kode Aplikasi HR",
-    "desc": "Perbaikan",
-    "impact": 4,
-    "urgency": 4,
-    "effort": 3,
-    "dueISO": "2025-09-02T01:49:00.000Z",
+    "efisiensi": 4,
+    "dueISO": "2026-04-24T03:00:00.000Z",
     "owner": "Dani",
-    "tags": [
-      "dev"
-    ],
-    "status": "Selesai",
-    "createdAtISO": "2025-09-02T01:47:54.242Z",
-    "updatedAtISO": "2025-09-02T01:54:34.072Z"
-  },
-  {
-    "id": "T7gnv64h9kx5",
-    "title": "Perbaiki Alert Aplikasi Dashboard",
-    "desc": "alert",
-    "impact": 3,
-    "urgency": 3,
-    "effort": 2,
-    "dueISO": "2025-09-02T03:21:00.000Z",
-    "owner": "Dani",
-    "tags": [
-      "dev"
-    ],
-    "status": "Proses",
-    "createdAtISO": "2025-09-02T02:21:25.673Z",
-    "updatedAtISO": "2025-09-02T02:22:02.424Z"
-  },
-  {
-    "id": "T744dsbqe97r",
-    "title": "Bikin Website dari CV",
-    "desc": "Bikin Website dari CV",
-    "impact": 4,
-    "urgency": 4,
-    "effort": 4,
-    "dueISO": "2025-09-02T04:20:00.000Z",
-    "owner": "Dani",
-    "tags": [
-      "dev"
-    ],
-    "status": "Proses",
-    "createdAtISO": "2025-09-02T03:21:03.016Z",
-    "updatedAtISO": "2025-09-02T03:23:20.859Z"
-  },
-  {
-    "id": "T1nh406djg6s",
-    "title": "tes upload 40 mb",
-    "desc": "tes upload 40 mb",
-    "impact": 3,
-    "urgency": 3,
-    "effort": 2,
-    "dueISO": "2025-09-02T04:24:00.000Z",
-    "owner": "Dani",
-    "tags": [
-      "srs"
-    ],
-    "status": "Proses",
-    "createdAtISO": "2025-09-02T03:25:05.332Z",
-    "updatedAtISO": "2025-09-02T03:41:26.756Z"
-  },
-  {
-    "id": "Tq194f3c6b4e",
-    "title": "tes downlaod",
-    "desc": "tes downlaod",
-    "impact": 3,
-    "urgency": 3,
-    "effort": 2,
-    "dueISO": "2025-09-02T04:42:00.000Z",
-    "owner": "Dani",
+    "picDev": "",
+    "picSA": "",
+    "quartal": "Q3",
     "tags": [],
-    "status": "Proses",
-    "createdAtISO": "2025-09-02T03:42:51.854Z",
-    "updatedAtISO": "2025-09-02T03:42:51.854Z"
-  },
-  {
-    "id": "Ts9y01u4hw4f",
-    "title": "Test Upload File Final",
-    "desc": "Test Upload File Final",
-    "impact": 5,
-    "urgency": 4,
-    "effort": 2,
-    "dueISO": "2025-09-02T04:51:00.000Z",
-    "owner": "Dani",
-    "tags": [
-      "srs"
-    ],
-    "status": "Proses",
+    "status": "Done",
     "attachments": [
       {
-        "id": "1756785110305_Resume-DANI-JUHAENI.pdf",
-        "name": "Resume-DANI-JUHAENI.pdf",
-        "type": "application/pdf",
-        "size": 85250,
-        "uploadedAt": "2025-09-02T03:51:50.310Z"
-      },
-      {
-        "id": "1756785126923_CV_-_Dani_Juhaeni.docx",
-        "name": "CV - Dani Juhaeni.docx",
-        "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "size": 35201,
-        "uploadedAt": "2025-09-02T03:52:06.928Z"
-      },
-      {
-        "id": "1756785145229_Resume_-_Dani_Juhaeni.pdf",
+        "id": "1776997001683_Resume_-_Dani_Juhaeni.pdf",
         "name": "Resume - Dani Juhaeni.pdf",
         "type": "application/pdf",
         "size": 263172,
-        "uploadedAt": "2025-09-02T03:52:25.237Z"
+        "uploadedAt": "2026-04-24T02:16:41.686Z"
+      },
+      {
+        "id": "1777013258700_CyberBlueSOC-Guide.pdf",
+        "name": "CyberBlueSOC-Guide.pdf",
+        "type": "application/pdf",
+        "size": 16796872,
+        "uploadedAt": "2026-04-24T06:47:38.749Z"
       }
     ],
-    "createdAtISO": "2025-09-02T03:51:52.288Z",
-    "updatedAtISO": "2025-09-02T10:46:42.589Z",
-    "picDev": "Budi",
-    "picSA": "Andi"
+    "createdAtISO": "2026-04-24T02:00:39.379Z",
+    "updatedAtISO": "2026-04-24T06:47:41.116Z"
+  },
+  {
+    "id": "Tmcqqvndksub",
+    "title": "Tugas 2",
+    "desc": "",
+    "regulasi": 3,
+    "bisnis": 3,
+    "resiko": 3,
+    "efisiensi": 3,
+    "dueISO": "2026-04-24T03:00:00.000Z",
+    "owner": "Dani",
+    "picDev": "",
+    "picSA": "",
+    "quartal": "Q3",
+    "tags": [],
+    "status": "Done",
+    "attachments": [],
+    "createdAtISO": "2026-04-24T02:01:07.331Z",
+    "updatedAtISO": "2026-04-24T02:01:07.331Z"
+  },
+  {
+    "id": "T74yrbe9lb2m",
+    "title": "Tugas 3",
+    "desc": "",
+    "regulasi": 3,
+    "bisnis": 3,
+    "resiko": 3,
+    "efisiensi": 3,
+    "dueISO": "2026-04-24T03:01:00.000Z",
+    "owner": "Ayu",
+    "picDev": "",
+    "picSA": "",
+    "quartal": "Q2",
+    "tags": [],
+    "status": "Done",
+    "attachments": [
+      {
+        "id": "1777012847372_CyberBlueSOC-Guide.pdf",
+        "name": "CyberBlueSOC-Guide.pdf",
+        "type": "application/pdf",
+        "size": 16796872,
+        "uploadedAt": "2026-04-24T06:40:47.430Z"
+      }
+    ],
+    "createdAtISO": "2026-04-24T02:01:30.958Z",
+    "updatedAtISO": "2026-04-24T06:40:50.610Z"
+  },
+  {
+    "id": "Tecmn7ylw4jg",
+    "title": "Tugas 4",
+    "desc": "",
+    "regulasi": 5,
+    "bisnis": 3,
+    "resiko": 5,
+    "efisiensi": 3,
+    "dueISO": "2026-04-24T03:09:00.000Z",
+    "owner": "Dani",
+    "picDev": "",
+    "picSA": "",
+    "quartal": "Q2",
+    "tags": [],
+    "status": "Done",
+    "attachments": [
+      {
+        "id": "1776997402509_CyberBlueSOC-Guide.pdf",
+        "name": "CyberBlueSOC-Guide.pdf",
+        "type": "application/pdf",
+        "size": 16796872,
+        "uploadedAt": "2026-04-24T02:23:22.543Z"
+      }
+    ],
+    "createdAtISO": "2026-04-24T02:09:55.708Z",
+    "updatedAtISO": "2026-04-24T02:23:24.590Z"
+  },
+  {
+    "id": "Tep5bqbxwvfi",
+    "title": "Tugas 6",
+    "desc": "",
+    "regulasi": 4,
+    "bisnis": 3,
+    "resiko": 4,
+    "efisiensi": 4,
+    "dueISO": "2026-04-24T03:10:00.000Z",
+    "owner": "Kiya",
+    "picDev": "",
+    "picSA": "",
+    "quartal": "",
+    "tags": [],
+    "status": "Done",
+    "attachments": [
+      {
+        "id": "1776997733782_CyberBlueSOC-Guide.pdf",
+        "name": "CyberBlueSOC-Guide.pdf",
+        "type": "application/pdf",
+        "size": 16796872,
+        "uploadedAt": "2026-04-24T02:28:53.819Z"
+      }
+    ],
+    "createdAtISO": "2026-04-24T02:10:30.558Z",
+    "updatedAtISO": "2026-04-24T02:28:55.197Z"
   }
 ]

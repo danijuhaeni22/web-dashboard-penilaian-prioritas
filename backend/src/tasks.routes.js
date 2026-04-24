@@ -61,131 +61,179 @@ function sanitizeTaskInput(body) {
 }
 
 router.get("/", (req, res) => {
-  const {
-    q = "",
-    status = "ALL",
-    sortKey = "score",
-    sortDir = "desc",
-  } = req.query;
+  try {
+    const {
+      q = "",
+      status = "ALL",
+      sortKey = "score",
+      sortDir = "desc",
+    } = req.query;
 
-  const weights = db.data.settings.weights || {
-    impact: 1,
-    urgency: 1,
-    effort: 1,
-  };
+    const weights = db.data.settings.weights || {
+      impact: 1,
+      urgency: 1,
+      effort: 1,
+    };
 
-  // Filter
-  let tasks = db.data.tasks.slice();
-  if (status !== "ALL") {
-    const want = normalizeStatus(status);
-    tasks = tasks.filter((t) => normalizeStatus(t.status) === want);
-  }
-  const qTokens = String(q).toLowerCase().split(/\s+/).filter(Boolean);
-  if (qTokens.length) {
-    tasks = tasks.filter((t) => {
-      const hay = [t.title, t.owner || "", ...(t.tags || [])]
-        .join(" ")
-        .toLowerCase();
-      return qTokens.every((tok) => hay.includes(tok));
+    // Filter
+    let tasks = db.data.tasks.slice();
+
+    if (status !== "ALL") {
+      const want = normalizeStatus(status);
+      tasks = tasks.filter((t) => normalizeStatus(t.status) === want);
+    }
+
+    const qTokens = String(q).toLowerCase().split(/\s+/).filter(Boolean);
+
+    if (qTokens.length) {
+      tasks = tasks.filter((t) => {
+        const hay = [
+          t.title || "",
+          t.owner || "",
+          ...(Array.isArray(t.tags) ? t.tags : []),
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return qTokens.every((tok) => hay.includes(tok));
+      });
+    }
+
+    // Compute scores/labels
+    const allScores = db.data.tasks.map((t) => computePriority(t, weights));
+
+    const thresholds = thresholdsFromScores(allScores);
+
+    const items = tasks.map((t) => {
+      const score = computePriority(t, weights);
+
+      return {
+        ...t,
+        status: normalizeStatus(t.status),
+        attachments: Array.isArray(t.attachments) ? t.attachments : [],
+        score,
+        priorityLabel: labelForScore(score, thresholds),
+        isOverdue: isOverdue(t),
+      };
+    });
+
+    // Sort
+    const factor = sortDir === "asc" ? 1 : -1;
+
+    items.sort((a, b) => {
+      let va, vb;
+
+      switch (sortKey) {
+        case "title":
+          va = (a.title || "").toLowerCase();
+          vb = (b.title || "").toLowerCase();
+          break;
+
+        case "regulasi":
+          va = a.regulasi ?? 0;
+          vb = b.regulasi ?? 0;
+          break;
+
+        case "bisnis":
+          va = a.bisnis ?? 0;
+          vb = b.bisnis ?? 0;
+          break;
+
+        case "resiko":
+          va = a.resiko ?? 0;
+          vb = b.resiko ?? 0;
+          break;
+
+        case "efisiensi":
+          va = a.efisiensi ?? 0;
+          vb = b.efisiensi ?? 0;
+          break;
+
+        case "quartal": {
+          const orderQ = { "": 0, Q1: 1, Q2: 2, Q3: 3, Q4: 4 };
+          va = orderQ[a.quartal || ""] ?? 0;
+          vb = orderQ[b.quartal || ""] ?? 0;
+          break;
+        }
+
+        case "score":
+          va = a.score ?? 0;
+          vb = b.score ?? 0;
+          break;
+
+        case "status": {
+          const order = {
+            Waiting: 0,
+            "On Progress": 1,
+            Continue: 2,
+            Done: 3,
+          };
+          va = order[a.status] ?? 9;
+          vb = order[b.status] ?? 9;
+          break;
+        }
+
+        case "due":
+          va = a.dueISO ? dayjs(a.dueISO).valueOf() : Infinity;
+          vb = b.dueISO ? dayjs(b.dueISO).valueOf() : Infinity;
+          break;
+
+        default:
+          va = 0;
+          vb = 0;
+      }
+
+      if (va < vb) return -1 * factor;
+      if (va > vb) return 1 * factor;
+      return 0;
+    });
+
+    // Summary
+    const waiting = db.data.tasks.filter(
+      (t) => normalizeStatus(t.status) === "Waiting",
+    ).length;
+
+    const progress = db.data.tasks.filter(
+      (t) => normalizeStatus(t.status) === "On Progress",
+    ).length;
+
+    const done = db.data.tasks.filter(
+      (t) => normalizeStatus(t.status) === "Done",
+    ).length;
+
+    const total = db.data.tasks.length;
+
+    const overdue = db.data.tasks.filter(isOverdue).length;
+
+    const avg = total
+      ? Math.round(
+          (db.data.tasks.reduce((s, t) => s + computePriority(t, weights), 0) /
+            total) *
+            100,
+        ) / 100
+      : 0;
+
+    res.json({
+      items,
+      thresholds,
+      weights,
+      summary: {
+        total,
+        todo: waiting,
+        progress,
+        done,
+        overdue,
+        avg,
+      },
+    });
+  } catch (err) {
+    console.error("ERROR GET /api/tasks:", err);
+
+    res.status(500).json({
+      error: "Internal server error",
+      message: err.message,
     });
   }
-
-  // Compute scores/labels
-  const allScores = db.data.tasks.map((t) => computePriority(t, weights));
-  const thresholds = thresholdsFromScores(allScores);
-
-  const items = tasks.map((t) => {
-    const score = computePriority(t, weights);
-    return {
-      ...t,
-      status: normalizeStatus(t.status),
-      attachments: Array.isArray(t.attachments) ? t.attachments : [],
-      score,
-      priorityLabel: labelForScore(score, thresholds),
-      isOverdue: isOverdue(t),
-    };
-  });
-
-  // Sort
-  const factor = sortDir === "asc" ? 1 : -1;
-  items.sort((a, b) => {
-    let va, vb;
-    switch (sortKey) {
-      case "title":
-        va = (a.title || "").toLowerCase();
-        vb = (b.title || "").toLowerCase();
-        break;
-      case "regulasi":
-        va = a.regulasi ?? 0;
-        vb = b.regulasi ?? 0;
-        break;
-      case "bisnis":
-        va = a.bisnis ?? 0;
-        vb = b.bisnis ?? 0;
-        break;
-      case "resiko":
-        va = a.resiko ?? 0;
-        vb = b.resiko ?? 0;
-        break;
-      case "efisiensi":
-        va = a.efisiensi ?? 0;
-        vb = b.efisiensi ?? 0;
-        break;
-      case "quartal": {
-        const orderQ = { "": 0, Q1: 1, Q2: 2, Q3: 3, Q4: 4 };
-        va = orderQ[a.quartal || ""] ?? 0;
-        vb = orderQ[b.quartal || ""] ?? 0;
-        break;
-      }
-      case "score":
-        va = a.score ?? 0;
-        vb = b.score ?? 0;
-        break;
-      case "status": {
-        const order = { Waiting: 0, "On Progress": 1, Continue: 2, Done: 3 };
-        va = order[a.status] ?? 9;
-        vb = order[b.status] ?? 9;
-        break;
-      }
-      case "due":
-        va = a.dueISO ? dayjs(a.dueISO).valueOf() : Infinity;
-        vb = b.dueISO ? dayjs(b.dueISO).valueOf() : Infinity;
-        break;
-      default:
-        va = 0;
-        vb = 0;
-    }
-    if (va < vb) return -1 * factor;
-    if (va > vb) return 1 * factor;
-    return 0;
-  });
-
-  // Summary (tetap tiga kolom utama seperti UI kamu)
-  const waiting = db.data.tasks.filter(
-    (t) => normalizeStatus(t.status) === "Waiting"
-  ).length;
-  const progress = db.data.tasks.filter(
-    (t) => normalizeStatus(t.status) === "On Progress"
-  ).length;
-  const done = db.data.tasks.filter(
-    (t) => normalizeStatus(t.status) === "Done"
-  ).length;
-  const total = db.data.tasks.length;
-  const overdue = db.data.tasks.filter(isOverdue).length;
-  const avg = total
-    ? Math.round(
-        (db.data.tasks.reduce((s, t) => s + computePriority(t, weights), 0) /
-          total) *
-          100
-      ) / 100
-    : 0;
-
-  res.json({
-    items,
-    thresholds,
-    weights,
-    summary: { total, todo: waiting, progress, done, overdue, avg },
-  });
 });
 
 router.post("/", (req, res) => {
@@ -212,7 +260,7 @@ router.put("/:id", (req, res) => {
   const incoming = req.body || {};
   const hasAttachments = Object.prototype.hasOwnProperty.call(
     incoming,
-    "attachments"
+    "attachments",
   );
 
   const t = sanitizeTaskInput(incoming);
@@ -224,8 +272,8 @@ router.put("/:id", (req, res) => {
       ? t.attachments
       : []
     : Array.isArray(prev.attachments)
-    ? prev.attachments
-    : [];
+      ? prev.attachments
+      : [];
 
   db.data.tasks[idx] = updated;
   db.save();

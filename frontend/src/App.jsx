@@ -22,6 +22,7 @@ import { useNotifier } from "./hooks/useNotifier";
 
 // === PDF export libs ===
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
 
 export default function App() {
@@ -41,6 +42,8 @@ export default function App() {
 
   // ===== Semua tugas (tanpa filter) untuk Alert =====
   const [allForAlert, setAllForAlert] = useState([]);
+
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // ===== Modal & draft =====
   const [modalOpen, setModalOpen] = useState(false);
@@ -84,19 +87,19 @@ export default function App() {
     return Array.isArray(formDraft.tags)
       ? formDraft.tags
       : formDraft.tags
-      ? String(formDraft.tags)
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : [];
+        ? String(formDraft.tags)
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
   }, [formDraft.tags]);
 
   const modalCategories = useMemo(
     () =>
       Array.from(
-        new Set([...tagsFromTasks, ...extraCats, ...tagsFromDraft])
+        new Set([...tagsFromTasks, ...extraCats, ...tagsFromDraft]),
       ).sort(),
-    [tagsFromTasks, extraCats, tagsFromDraft]
+    [tagsFromTasks, extraCats, tagsFromDraft],
   );
 
   const inUseSet = useMemo(() => new Set(tagsFromTasks), [tagsFromTasks]);
@@ -112,10 +115,20 @@ export default function App() {
 
   const [toast, notify] = useNotifier();
 
-  const load = async () => {
+  // 🔥 load untuk tabel
+  const loadMain = async () => {
     try {
       const r = await api.listTasks({ q, status, sortKey, sortDir });
       setData(r);
+    } catch (e) {
+      console.error("Gagal memuat tasks:", e);
+      notify?.({ text: `Gagal memuat tugas: ${e.message}`, variant: "error" });
+    }
+  };
+
+  // 🔥 load untuk alert (sekali saja)
+  const loadAlert = async () => {
+    try {
       const all = await api.listTasks({
         q: "",
         status: "ALL",
@@ -124,8 +137,7 @@ export default function App() {
       });
       setAllForAlert(all?.items || []);
     } catch (e) {
-      console.error("Gagal memuat tasks:", e);
-      notify?.({ text: `Gagal memuat tugas: ${e.message}`, variant: "error" });
+      console.error("Alert fetch error:", e);
     }
   };
 
@@ -134,8 +146,17 @@ export default function App() {
     return () => clearInterval(t);
   }, []);
   useEffect(() => {
-    load();
+    const t = setTimeout(() => {
+      loadMain();
+    }, 120); // 🔥 penting
+
+    return () => clearTimeout(t);
   }, [q, status, sortKey, sortDir]);
+
+  // 🔥 untuk alert (sekali saja)
+  useEffect(() => {
+    loadAlert();
+  }, []);
 
   const clamp = (v, min, max) => Math.max(min, Math.min(max, Number(v)));
   const setWeight = async (k, v) => {
@@ -143,14 +164,14 @@ export default function App() {
     const next = { ...data.weights, [k]: val };
     await api.setSettings(next);
     notify(
-      "Bobot diperbarui (catatan: rumus prioritas saat ini tidak memakai bobot)."
+      "Bobot diperbarui (catatan: rumus prioritas saat ini tidak memakai bobot).",
     );
-    load();
+    await loadMain();
   };
   const resetWeights = async () => {
     await api.setSettings({ impact: 1, urgency: 1, effort: 1 });
     notify("Bobot dikembalikan.");
-    load();
+    loadMain();
   };
 
   const openAdd = () => {
@@ -166,28 +187,28 @@ export default function App() {
       tags: Array.isArray(t.tags)
         ? t.tags
         : t.tags
-        ? String(t.tags)
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean)
-        : [],
+          ? String(t.tags)
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
       attachments: Array.isArray(t.attachments) ? t.attachments : [],
       regulasi: Number.isFinite(t.regulasi)
         ? t.regulasi
         : Number.isFinite(t.impact)
-        ? t.impact
-        : 3,
+          ? t.impact
+          : 3,
       bisnis: Number.isFinite(t.bisnis)
         ? t.bisnis
         : Number.isFinite(t.urgency)
-        ? t.urgency
-        : 3,
+          ? t.urgency
+          : 3,
       resiko: Number.isFinite(t.resiko) ? t.resiko : 3,
       efisiensi: Number.isFinite(t.efisiensi)
         ? t.efisiensi
         : Number.isFinite(t.effort)
-        ? t.effort
-        : 3,
+          ? t.effort
+          : 3,
       picDev: t.picDev || "",
       picSA: t.picSA || "",
       quartal: t.quartal || "",
@@ -202,7 +223,7 @@ export default function App() {
     if (!f.title?.trim()) return;
     if (
       ![f.regulasi, f.bisnis, f.resiko, f.efisiensi].every((n) =>
-        Number.isFinite(n)
+        Number.isFinite(n),
       )
     )
       return;
@@ -225,40 +246,68 @@ export default function App() {
       tags: Array.isArray(f.tags)
         ? f.tags
         : f.tags
-        ? String(f.tags)
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean)
-        : [],
+          ? String(f.tags)
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
       status: f.status,
       attachments: Array.isArray(f.attachments) ? f.attachments : [],
     };
 
-    if (editing?.id) {
-      await api.updateTask(editing.id, payload);
-      notify("Perubahan tersimpan.");
-    } else {
-      await api.createTask(payload);
-      notify("Tugas ditambahkan.");
-      setFormDraft({ ...emptyForm });
+    try {
+      if (editing?.id) {
+        await api.updateTask(editing.id, payload);
+        notify("Perubahan tersimpan.");
+      } else {
+        await api.createTask(payload);
+        notify("Tugas ditambahkan.");
+        setFormDraft({ ...emptyForm });
+      }
+
+      setModalOpen(false);
+
+      // 🔥 FIX UTAMA (jangan dihapus)
+      await new Promise((r) => setTimeout(r, 120));
+
+      await loadMain();
+    } catch (e) {
+      console.error(e);
+      notify("Gagal menyimpan data");
     }
-    setModalOpen(false);
-    load();
   };
 
   const markDone = async (id, title) => {
     const ok = confirm(`Yakin menandai tugas ini sebagai selesai?\n"${title}"`);
     if (!ok) return;
+
     await api.markDone(id);
     notify("Tugas ditandai selesai.");
-    load();
+
+    await new Promise((r) => setTimeout(r, 100)); // 🔥 tambah ini
+
+    await loadMain();
   };
 
   const remove = async (id) => {
+    if (isDeleting) return;
+
     if (confirm("Hapus tugas ini?")) {
-      await api.removeTask(id);
-      notify("Tugas dihapus.");
-      load();
+      try {
+        setIsDeleting(true);
+
+        await api.removeTask(id);
+        notify("Tugas dihapus.");
+
+        await new Promise((r) => setTimeout(r, 100)); // 🔥 tambah ini
+
+        await loadMain();
+      } catch (err) {
+        console.error(err);
+        notify("Gagal hapus tugas");
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -285,60 +334,110 @@ export default function App() {
     if (!el) return;
     if (startNewPage) pdf.addPage();
 
+    // 🔥 TARO DI SINI (penting)
+    await new Promise((r) => setTimeout(r, 100));
+
     const canvas = await html2canvas(el, {
       backgroundColor: "#ffffff",
       scale: 2,
       useCORS: true,
-      logging: false,
-      windowWidth: document.documentElement.scrollWidth, // cegah terpotong
     });
+
     const imgData = canvas.toDataURL("image/png");
 
     const pdfW = pdf.internal.pageSize.getWidth();
     const pdfH = pdf.internal.pageSize.getHeight();
+
+    const margin = 10;
+    const usableW = pdfW - margin * 2;
+
     const imgW = canvas.width;
     const imgH = canvas.height;
 
-    const renderH = (pdfW * imgH) / imgW; // skala proporsional ke lebar halaman
+    const ratio = usableW / imgW;
+    const renderH = imgH * ratio;
 
     let heightLeft = renderH;
-    let position = 0;
+    let position = margin;
 
-    pdf.addImage(imgData, "PNG", 0, position, pdfW, renderH);
+    pdf.addImage(imgData, "PNG", margin, position, usableW, renderH);
+
     heightLeft -= pdfH;
-    position = -pdfH;
 
     while (heightLeft > 0) {
+      position = heightLeft - renderH + margin;
       pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, position, pdfW, renderH);
+      pdf.addImage(imgData, "PNG", margin, position, usableW, renderH);
       heightLeft -= pdfH;
-      position -= pdfH;
     }
   };
 
   const exportPdf = async () => {
     try {
       setExporting(true);
-      const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
 
-      // Halaman 1: Chart card
-      await addElementToPdf(pdf, chartCardRef.current, false);
+      const pdf = new jsPDF();
 
-      // Halaman berikutnya: Table card (multi halaman jika perlu)
-      await addElementToPdf(pdf, tableCardRef.current, true);
+      // ===== TITLE =====
+      pdf.setFontSize(16);
+      pdf.text("Dashboard Prioritas Pekerjaan", 14, 15);
+
+      pdf.setFontSize(10);
+      pdf.text(`Tanggal: ${dayjs().format("DD MMM YYYY HH:mm")}`, 14, 22);
+
+      // ===== TABLE DATA =====
+      const rows = data.items.map((t, i) => [
+        i + 1,
+        t.title,
+        t.owner,
+        t.status,
+        t.priorityLabel,
+        t.score,
+        t.quartal || "-",
+        t.dueISO ? dayjs(t.dueISO).format("DD MMM YYYY") : "-",
+      ]);
+
+      autoTable(pdf, {
+        startY: 30,
+        head: [
+          [
+            "No",
+            "Judul",
+            "Owner",
+            "Status",
+            "Prioritas",
+            "Score",
+            "Quartal",
+            "Due Date",
+          ],
+        ],
+        body: rows,
+
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+        },
+
+        headStyles: {
+          fillColor: [30, 41, 59], // slate-800
+        },
+
+        alternateRowStyles: {
+          fillColor: [245, 245, 245],
+        },
+      });
 
       pdf.save(`prioritas-dashboard_${dayjs().format("YYYYMMDD_HHmm")}.pdf`);
     } catch (e) {
       console.error("Export PDF gagal", e);
-      notify?.({ text: `Gagal ekspor PDF: ${e.message}`, variant: "error" });
     } finally {
       setExporting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b bg-white">
+    <div className="min-h-screen bg-slate-900 text-slate-200">
+      <header className="border-b">
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold">
@@ -359,44 +458,55 @@ export default function App() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {/* Ringkasan */}
           <section className="card">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold">Ringkasan</h2>
-              <div className="text-xs text-slate-500">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-100">
+                Ringkasan
+              </h2>
+              <div className="text-xs text-slate-400">
                 Terakhir diperbarui: {clock.format("DD MMM YYYY HH:mm [WIB]")}
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-50 rounded-xl p-4">
-                <div className="text-sm text-slate-500">Total Tugas</div>
-                <div className="text-2xl font-bold mt-1">
+              {/* TOTAL */}
+              <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700 hover:bg-slate-800 transition">
+                <div className="text-xs text-slate-400">Total Tugas</div>
+                <div className="text-2xl font-bold text-slate-100 mt-1">
                   {data.summary.total}
                 </div>
               </div>
-              <div className="bg-slate-50 rounded-xl p-4">
-                <div className="text-sm text-slate-500">
+
+              {/* AVG */}
+              <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700 hover:bg-slate-800 transition">
+                <div className="text-xs text-slate-400">
                   Rata-rata Prioritas
                 </div>
-                <div className="text-2xl font-bold mt-1">
+                <div className="text-2xl font-bold text-slate-100 mt-1">
                   {data.summary.avg?.toFixed?.(2) ?? "0.00"}
                 </div>
               </div>
-              <div className="bg-slate-50 rounded-xl p-4">
-                <div className="text-sm text-slate-500">
-                  Status: Waiting / On Progress / Done
-                </div>
-                <div className="text-xl font-semibold mt-1">
-                  {data.summary.todo} / {data.summary.progress} /{" "}
-                  {data.summary.done}
+
+              {/* STATUS */}
+              <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700 hover:bg-slate-800 transition">
+                <div className="text-xs text-slate-400">Status</div>
+                <div className="text-lg font-semibold text-slate-100 mt-1">
+                  {data.summary.todo} <span className="text-slate-500">/</span>{" "}
+                  {data.summary.progress}{" "}
+                  <span className="text-slate-500">/</span> {data.summary.done}
                 </div>
               </div>
-              <div className="bg-slate-50 rounded-xl p-4">
-                <div className="text-sm text-slate-500">Overdue</div>
-                <div className="text-2xl font-bold mt-1 text-red-600">
+
+              {/* OVERDUE */}
+              <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700 hover:bg-slate-800 transition">
+                <div className="text-xs text-slate-400">Overdue</div>
+                <div className="text-2xl font-bold text-red-400 mt-1">
                   {data.summary.overdue}
                 </div>
               </div>
             </div>
-            <div className="text-xs text-slate-500 mt-4">
+
+            {/* BADGE */}
+            <div className="text-xs text-slate-400 mt-4">
               Badge: <span className="badge badge-red">Tinggi</span>{" "}
               <span className="badge badge-amber">Sedang</span>{" "}
               <span className="badge badge-green">Rendah</span>
@@ -405,13 +515,15 @@ export default function App() {
 
           {/* Rumus */}
           <section className="card">
-            <h2 className="text-lg font-semibold mb-3">Rumus Prioritas</h2>
-            <div className="text-sm text-slate-700">
-              <code>
-                Prioritas = (Regulasi + Bisnis + Resiko + Efisiensi) / 4
-              </code>
+            <h2 className="text-lg font-semibold text-slate-100 mb-3">
+              Rumus Prioritas
+            </h2>
+
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 font-mono">
+              Prioritas = (Regulasi + Bisnis + Resiko + Efisiensi) / 4
             </div>
-            <div className="text-xs text-slate-500 mt-2">
+
+            <div className="text-xs text-slate-400 mt-2">
               Catatan: pengaturan bobot tidak digunakan pada rumus ini.
             </div>
           </section>
@@ -487,8 +599,9 @@ export default function App() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-slate-50">
+              <table className="min-w-full text-sm text-slate-300">
+                {/* HEADER */}
+                <thead className="bg-slate-800 border-b border-slate-700">
                   <tr>
                     {["title", "score", "status", "quartal", "due"].map((k) => {
                       const titles = {
@@ -498,6 +611,7 @@ export default function App() {
                         quartal: "Quartal",
                         due: "Jatuh Tempo",
                       };
+
                       const onClick = () => {
                         if (sortKey === k)
                           setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -506,27 +620,34 @@ export default function App() {
                           setSortDir(k === "score" ? "desc" : "asc");
                         }
                       };
+
                       const arrow =
                         sortKey === k ? (sortDir === "asc" ? "▲" : "▼") : "";
+
                       return (
                         <th
                           key={k}
                           onClick={onClick}
-                          className="text-left px-3 py-2 font-medium text-slate-600 cursor-pointer select-none"
+                          className="text-left px-4 py-3 font-semibold text-slate-400 cursor-pointer select-none hover:text-white transition"
                         >
                           <span className="inline-flex items-center gap-1">
-                            {titles[k]}{" "}
-                            <span className="w-3 inline-block">{arrow}</span>
+                            {titles[k]}
+                            <span className="w-3 inline-block text-xs">
+                              {arrow}
+                            </span>
                           </span>
                         </th>
                       );
                     })}
-                    <th className="text-left px-3 py-2 font-medium text-slate-600">
+
+                    <th className="text-left px-4 py-3 font-semibold text-slate-400">
                       Aksi
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+
+                {/* BODY */}
+                <tbody className="divide-y divide-slate-700">
                   {data.items.length === 0 && (
                     <tr>
                       <td
@@ -537,43 +658,58 @@ export default function App() {
                       </td>
                     </tr>
                   )}
+
                   {data.items.map((t) => (
-                    <tr key={t.id} className="hover:bg-slate-50 align-top">
-                      <td className="px-3 py-2">
-                        <div className="font-medium">{t.title}</div>
+                    <tr
+                      key={t.id}
+                      className="hover:bg-slate-800/60 transition-colors align-top"
+                    >
+                      {/* TITLE */}
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-slate-100">
+                          {t.title}
+                        </div>
+
                         {t.desc && (
-                          <div className="text-xs text-slate-500 mt-0.5">
+                          <div className="text-xs text-slate-400 mt-1">
                             {t.desc}
                           </div>
                         )}
+
                         {(t.owner || t.picDev || t.picSA) && (
-                          <div className="text-xs text-slate-500 mt-0.5">
+                          <div className="text-xs text-slate-500 mt-1">
                             {t.owner && (
                               <>
                                 PO:{" "}
-                                <span className="font-medium">{t.owner}</span>
+                                <span className="text-slate-300 font-medium">
+                                  {t.owner}
+                                </span>
                               </>
                             )}
                             {t.picDev && (
                               <>
                                 {" "}
                                 • Dev:{" "}
-                                <span className="font-medium">{t.picDev}</span>
+                                <span className="text-slate-300 font-medium">
+                                  {t.picDev}
+                                </span>
                               </>
                             )}
                             {t.picSA && (
                               <>
                                 {" "}
                                 • SA:{" "}
-                                <span className="font-medium">{t.picSA}</span>
+                                <span className="text-slate-300 font-medium">
+                                  {t.picSA}
+                                </span>
                               </>
                             )}
                           </div>
                         )}
                       </td>
 
-                      {/* Prioritas Badge */}
-                      <td className="px-3 py-2 text-center">
+                      {/* PRIORITAS */}
+                      <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center">
                           <PriorityBadge
                             label={t.priorityLabel}
@@ -582,21 +718,25 @@ export default function App() {
                         </div>
                       </td>
 
-                      <td className="px-3 py-2 text-center">
+                      {/* STATUS */}
+                      <td className="px-4 py-3 text-center">
                         <StatusChip status={t.status} />
                       </td>
 
-                      <td className="px-3 py-2 text-center">
+                      {/* QUARTAL */}
+                      <td className="px-4 py-3 text-center text-slate-400">
                         {t.quartal || "—"}
                       </td>
 
-                      <td className="px-3 py-2">
-                        <div>
+                      {/* DUE */}
+                      <td className="px-4 py-3">
+                        <div className="text-slate-300">
                           {t.dueISO
                             ? dayjs(t.dueISO)
                                 .tz("Asia/Jakarta")
                                 .format("DD MMM YYYY HH:mm [WIB]")
                             : "—"}
+
                           {t.isOverdue && (
                             <span className="badge badge-red ml-2">
                               Overdue
@@ -605,13 +745,18 @@ export default function App() {
                         </div>
                       </td>
 
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <button className="btn" onClick={() => openEdit(t)}>
-                            <Edit3 className="w-4 h-4" /> Edit
+                      {/* AKSI */}
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <button
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-slate-600 bg-slate-700 text-slate-200 hover:bg-slate-600 transition"
+                            onClick={() => openEdit(t)}
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            Edit
                           </button>
 
-                          {/* Lampiran */}
+                          {/* LAMPIRAN */}
                           {Array.isArray(t.attachments) &&
                             t.attachments.length > 0 && (
                               <div
@@ -619,36 +764,35 @@ export default function App() {
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <button
-                                  className="btn border border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 focus:outline-none focus:ring-2 focus:ring-sky-300 transition-colors"
+                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-sky-500 bg-sky-900/30 text-sky-400 hover:bg-sky-900/50"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setOpenAttachId((prev) =>
-                                      prev === t.id ? null : t.id
+                                      prev === t.id ? null : t.id,
                                     );
                                   }}
-                                  aria-label="Lihat & unduh lampiran"
                                 >
-                                  <Paperclip className="w-4 h-4" />
-                                  <span className="text-sm">Lampiran</span>
-                                  <span className="ml-1 inline-flex items-center justify-center rounded-full border border-sky-200 bg-sky-100 text-sky-700 text-[10px] px-1.5 py-0.5 leading-none">
+                                  <Paperclip className="w-3.5 h-3.5" />
+                                  Lampiran
+                                  <span className="ml-1 text-[10px] bg-sky-700 px-1 rounded">
                                     {t.attachments.length}
                                   </span>
                                 </button>
 
                                 {openAttachId === t.id && (
-                                  <div className="absolute right-0 mt-2 w-72 z-[180] bg-white border border-slate-200 rounded-xl shadow-lg p-2">
+                                  <div className="absolute right-0 mt-2 w-72 z-[180] border border-slate-700 bg-slate-800 rounded-xl shadow-lg p-2">
                                     <ul className="max-h-64 overflow-auto">
                                       {t.attachments.map((att) => (
                                         <li
                                           key={att.id}
-                                          className="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-slate-50"
-                                          title={att.name || att.id}
+                                          className="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-slate-700"
                                         >
-                                          <span className="truncate">
+                                          <span className="truncate text-slate-300 text-xs">
                                             {att.name || att.id}
                                           </span>
+
                                           <a
-                                            className="btn px-2 py-1 text-xs border border-slate-300 bg-white hover:bg-slate-50"
+                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-slate-600 hover:bg-slate-700"
                                             href={api.files.url(att.id)}
                                             download
                                             target="_blank"
@@ -657,7 +801,7 @@ export default function App() {
                                               setOpenAttachId(null)
                                             }
                                           >
-                                            <DownloadIcon className="w-4 h-4" />{" "}
+                                            <DownloadIcon className="w-3.5 h-3.5" />
                                             Unduh
                                           </a>
                                         </li>
@@ -668,20 +812,27 @@ export default function App() {
                               </div>
                             )}
 
-                          {/* Selesai */}
+                          {/* SELESAI */}
                           <button
-                            className="btn border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-300 transition-colors"
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-emerald-500 bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50"
                             onClick={() => markDone(t.id, t.title)}
                           >
-                            <CheckCircle2 className="w-4 h-4" /> Selesai
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Selesai
                           </button>
 
-                          {/* Hapus */}
                           <button
-                            className="btn border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-300 transition-colors"
+                            disabled={isDeleting}
+                            className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-red-500 
+  ${
+    isDeleting
+      ? "bg-red-900/10 text-red-300 cursor-not-allowed"
+      : "bg-red-900/30 text-red-400 hover:bg-red-900/50"
+  }`}
                             onClick={() => remove(t.id)}
                           >
-                            <Trash2 className="w-4 h-4" /> Hapus
+                            <Trash2 className="w-3.5 h-3.5" />
+                            {isDeleting ? "Menghapus..." : "Hapus"}
                           </button>
                         </div>
                       </td>
@@ -702,10 +853,10 @@ export default function App() {
                toast.variant === "error"
                  ? "bg-red-600 text-white"
                  : toast.variant === "success"
-                 ? "bg-emerald-600 text-white"
-                 : toast.variant === "info"
-                 ? "bg-sky-600 text-white"
-                 : "bg-slate-900 text-white"
+                   ? "bg-emerald-600 text-white"
+                   : toast.variant === "info"
+                     ? "bg-sky-600 text-white"
+                     : "bg-slate-900 text-white"
              }`}
         >
           {toast.text}

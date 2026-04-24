@@ -74,57 +74,47 @@ export default function TaskModal({
   const removeAttach = (id) => {
     set(
       "attachments",
-      (form?.attachments || []).filter((a) => a.id !== id)
+      (form?.attachments || []).filter((a) => a.id !== id),
     );
   };
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div
-        className="modal relative overflow-visible max-h-[90vh] overflow-y-auto w-full max-w-3xl rounded-2xl bg-white shadow-2xl"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modalTitle"
-      >
-        {/* X kanan atas */}
+      <div className="relative max-h-[90vh] overflow-y-auto no-scrollbar w-full max-w-3xl rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl">
+        {/* CLOSE */}
         <button
-          type="button"
           onClick={onClose}
-          aria-label="Tutup"
-          title="Tutup"
-          className="absolute top-3 right-3 z-[106] inline-flex items-center justify-center rounded-full p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="absolute top-3 right-3 z-[106] p-2 rounded-full hover:bg-slate-700 text-slate-400 hover:text-white"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="modal-header sticky top-0 z-[105] bg-white/95 backdrop-blur border-b rounded-t-2xl">
+        {/* HEADER */}
+        <div className="sticky top-0 z-[105] bg-slate-900/95 backdrop-blur border-b border-slate-700 rounded-t-2xl">
           <div className="flex items-center justify-center px-5 py-3">
-            <h3 id="modalTitle" className="modal-title flex items-center gap-2">
-              <SlidersHorizontal className="w-5 h-5" />{" "}
+            <h3 className="flex items-center gap-2 text-slate-100 font-semibold">
+              <SlidersHorizontal className="w-5 h-5 text-sky-400" />
               {form?.id ? "Ubah Tugas" : "Tambah Tugas"}
             </h3>
           </div>
         </div>
 
-        <div className="modal-body overflow-visible px-5 py-4">
-          <form onSubmit={submit} className="grid gap-3">
+        {/* BODY */}
+        <div className="px-5 py-4">
+          <form onSubmit={submit} className="grid gap-4 text-slate-300">
+            {/* INPUT */}
             <label className="text-sm">
-              Judul <span className="text-red-600">*</span>
+              Judul <span className="text-red-500">*</span>
               <input
                 className="input mt-1"
                 value={form?.title ?? ""}
                 onChange={(e) => set("title", e.target.value)}
-                placeholder="Contoh: Perbaiki bug pembayaran"
-                required
               />
-              <div className="text-xs text-slate-500 mt-1">
-                Judul wajib diisi.
-              </div>
             </label>
 
             <label className="text-sm">
@@ -134,151 +124,90 @@ export default function TaskModal({
                 rows={3}
                 value={form?.desc ?? ""}
                 onChange={(e) => set("desc", e.target.value)}
-                placeholder="Detail singkat (opsional)"
               />
             </label>
 
-            {/* Empat faktor 1–5 */}
-            <div className="grid md:grid-cols-2 gap-3">
-              <label className="text-sm">
-                Regulasi (1–5) <span className="text-red-600">*</span>
-                <div className="flex items-center gap-3 mt-1">
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    step="1"
-                    value={form?.regulasi ?? 3}
-                    onChange={(e) => set("regulasi", Number(e.target.value))}
-                    className="w-full accent-sky-600"
-                    onKeyDown={(e) => e.preventDefault()}
-                  />
-                  <span className="badge badge-amber">
-                    {form?.regulasi ?? 3}
-                  </span>
-                </div>
-              </label>
-              <label className="text-sm">
-                Bisnis (1–5) <span className="text-red-600">*</span>
-                <div className="flex items-center gap-3 mt-1">
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    step="1"
-                    value={form?.bisnis ?? 3}
-                    onChange={(e) => set("bisnis", Number(e.target.value))}
-                    className="w-full accent-sky-600"
-                    onKeyDown={(e) => e.preventDefault()}
-                  />
-                  <span className="badge badge-amber">{form?.bisnis ?? 3}</span>
-                </div>
-              </label>
-              <label className="text-sm">
-                Resiko (1–5) <span className="text-red-600">*</span>
-                <div className="flex items-center gap-3 mt-1">
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    step="1"
-                    value={form?.resiko ?? 3}
-                    onChange={(e) => set("resiko", Number(e.target.value))}
-                    className="w-full accent-sky-600"
-                    onKeyDown={(e) => e.preventDefault()}
-                  />
-                  <span className="badge badge-amber">{form?.resiko ?? 3}</span>
-                </div>
-              </label>
-              <label className="text-sm">
-                Efisiensi (1–5) <span className="text-red-600">*</span>
-                <div className="flex items-center gap-3 mt-1">
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    step="1"
-                    value={form?.efisiensi ?? 3}
-                    onChange={(e) => set("efisiensi", Number(e.target.value))}
-                    className="w-full accent-sky-600"
-                    onKeyDown={(e) => e.preventDefault()}
-                  />
-                  <span className="badge badge-amber">
-                    {form?.efisiensi ?? 3}
-                  </span>
-                </div>
-              </label>
+            {/* SLIDER */}
+            <div className="grid md:grid-cols-2 gap-4">
+              {["regulasi", "bisnis", "resiko", "efisiensi"].map((k) => (
+                <label key={k} className="text-sm">
+                  {k} (1–5)
+                  <div className="flex items-center gap-3 mt-1">
+                    <input
+                      type="range"
+                      min="1"
+                      max="5"
+                      value={form?.[k] ?? 3}
+                      onChange={(e) => set(k, Number(e.target.value))}
+                      className="w-full accent-sky-500"
+                    />
+                    <span className="px-2 py-0.5 rounded bg-amber-900 text-amber-300 text-xs">
+                      {form?.[k] ?? 3}
+                    </span>
+                  </div>
+                </label>
+              ))}
             </div>
 
-            <div className="grid md:grid-cols-2 gap-3">
+            {/* GRID */}
+            <div className="grid md:grid-cols-2 gap-4">
               <label className="text-sm">
-                Tenggat / Due Date <span className="text-red-600">*</span>
-                <input
-                  type="hidden"
-                  required
-                  value={form?.dueISO || ""}
-                  onChange={() => {}}
-                />
-                <div className="mt-1 flex items-center gap-2">
-                  <div className="flex-1">
-                    <div className="input bg-slate-50 cursor-not-allowed">
-                      {form?.dueISO
-                        ? dayjs(form.dueISO)
-                            .tz("Asia/Jakarta")
-                            .format("DD MMM YYYY HH:mm [WIB]")
-                        : "Belum dipilih"}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1">
-                      Wajib diisi. Klik “Pilih”.
-                    </div>
+                Tenggat / Due Date *
+                <div className="flex gap-2 mt-1">
+                  <div className="flex items-center px-3 h-[42px] rounded-lg bg-slate-800 border border-slate-600 text-slate-200 text-sm min-w-0 flex-1">
+                    {form?.dueISO ? (
+                      dayjs(form.dueISO)
+                        .tz("Asia/Jakarta")
+                        .format("DD MMM YYYY HH:mm [WIB]")
+                    ) : (
+                      <span className="text-slate-400">Belum dipilih</span>
+                    )}
                   </div>
+
                   <button
                     type="button"
-                    className="btn btn-primary"
+                    className="btn btn-primary shrink-0"
                     onClick={() => setShowPicker(true)}
                   >
-                    <CalendarClock className="w-4 h-4" /> Pilih
+                    Pilih
                   </button>
                 </div>
               </label>
 
               <label className="text-sm">
-                Product Owner <span className="text-red-600">*</span>
+                Product Owner *
                 <input
                   className="input mt-1"
                   value={form?.owner ?? ""}
                   onChange={(e) => set("owner", e.target.value)}
-                  placeholder="Nama Product Owner"
-                  required
                 />
               </label>
             </div>
 
-            {/* PICs */}
-            <div className="grid md:grid-cols-2 gap-3">
+            {/* PIC */}
+            <div className="grid md:grid-cols-2 gap-4">
               <label className="text-sm">
                 PIC Development
                 <input
                   className="input mt-1"
                   value={form?.picDev ?? ""}
                   onChange={(e) => set("picDev", e.target.value)}
-                  placeholder="Nama PIC Development"
                 />
               </label>
+
               <label className="text-sm">
                 PIC System Analyst
                 <input
                   className="input mt-1"
                   value={form?.picSA ?? ""}
                   onChange={(e) => set("picSA", e.target.value)}
-                  placeholder="Nama PIC System Analyst"
                 />
               </label>
             </div>
 
-            {/* Kategori + Status + Quartal */}
-            <div className="grid md:grid-cols-3 gap-3">
-              <div className="text-sm relative z-[108] overflow-visible">
+            {/* KATEGORI + STATUS */}
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="text-sm">
                 <div className="mb-1">Kategori / Tag</div>
                 <CategoryMultiSelect
                   categories={modalCategories}
@@ -286,11 +215,11 @@ export default function TaskModal({
                     Array.isArray(form?.tags)
                       ? form.tags
                       : form?.tags
-                      ? String(form.tags)
-                          .split(",")
-                          .map((s) => s.trim())
-                          .filter(Boolean)
-                      : []
+                        ? String(form.tags)
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                        : []
                   }
                   onChange={(arr) => set("tags", arr)}
                   onAddCategory={addCategory}
@@ -299,47 +228,35 @@ export default function TaskModal({
                 />
               </div>
 
-              <div className="text-sm relative z-[110] overflow-visible">
-                <label className="block mb-1">
-                  Status <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="hidden"
-                  required
-                  value={form?.status || ""}
-                  onChange={() => {}}
-                />
+              <div className="text-sm">
+                <label className="block mb-1">Status *</label>
                 <SelectField
-                  options={["Waiting", "On Progress", "Continue", "Done"]} // ⬅️ tambahkan Continue
+                  options={["Waiting", "On Progress", "Continue", "Done"]}
                   value={form?.status || ""}
                   onChange={(val) => set("status", val)}
-                  placeholder="pilih status tugas"
-                  searchable={false}
                 />
               </div>
 
-              <div className="text-sm relative z-[109] overflow-visible">
+              <div className="text-sm">
                 <label className="block mb-1">Quartal</label>
                 <SelectField
                   options={["Q1", "Q2", "Q3", "Q4"]}
                   value={form?.quartal || ""}
                   onChange={(val) => set("quartal", val)}
-                  placeholder="pilih quartal"
-                  searchable={false}
                 />
               </div>
             </div>
 
-            {/* Lampiran */}
+            {/* UPLOAD */}
             <div className="text-sm">
-              <div className="mb-1">Lampiran (opsional)</div>
+              <div className="mb-1">Lampiran</div>
+
               <div
-                className={`rounded-xl border-2 border-dashed px-4 py-5 text-center transition
-                 ${
-                   dragHover
-                     ? "border-sky-400 bg-sky-50"
-                     : "border-slate-300 bg-slate-50"
-                 }`}
+                className={`rounded-xl border-2 border-dashed p-5 text-center transition ${
+                  dragHover
+                    ? "border-sky-500 bg-sky-900/20"
+                    : "border-slate-700 bg-slate-800"
+                }`}
                 onDragOver={(e) => {
                   e.preventDefault();
                   setDragHover(true);
@@ -347,10 +264,11 @@ export default function TaskModal({
                 onDragLeave={() => setDragHover(false)}
                 onDrop={onDrop}
               >
-                <Upload className="w-5 h-5 mx-auto text-slate-500" />
-                <div className="mt-2 text-xs text-slate-600">
-                  Seret & letakkan file ke sini, atau
+                <Upload className="w-5 h-5 mx-auto text-slate-400" />
+                <div className="text-xs mt-2 text-slate-400">
+                  Drag & drop atau pilih file
                 </div>
+
                 <button
                   type="button"
                   className="btn mt-3"
@@ -358,18 +276,13 @@ export default function TaskModal({
                 >
                   Pilih File
                 </button>
+
                 <input
                   ref={fileInputRef}
                   type="file"
                   className="hidden"
                   onChange={onInputFile}
                 />
-                {uploading && (
-                  <div className="text-xs text-slate-500 mt-2">Mengunggah…</div>
-                )}
-                <div className="text-xs text-slate-400 mt-2">
-                  Maks 50MB per file.
-                </div>
               </div>
 
               {(form?.attachments?.length || 0) > 0 && (
@@ -377,60 +290,39 @@ export default function TaskModal({
                   {form.attachments.map((att) => (
                     <li
                       key={att.id}
-                      className="flex items-center justify-between gap-3 p-3 rounded-xl border bg-white"
+                      className="flex justify-between items-center p-3 rounded-xl border border-slate-700 bg-slate-800"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Paperclip className="w-4 h-4 text-slate-400 shrink-0" />
-                        <div className="min-w-0">
-                          <div
-                            className="truncate font-medium"
-                            title={att.name || att.id}
-                          >
-                            {att.name || att.id}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {att.type || "unknown"} • {fmtSize(att.size)} •{" "}
-                            {att.uploadedAt
-                              ? dayjs(att.uploadedAt).format(
-                                  "DD MMM YYYY HH:mm [WIB]"
-                                )
-                              : ""}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <span className="truncate text-sm text-slate-300">
+                        {att.name || att.id}
+                      </span>
+
+                      <div className="flex gap-1">
                         <a
-                          className="btn"
+                          className="btn px-2 py-1 text-xs"
                           href={api.files.url(att.id)}
-                          download
-                          target="_blank"
-                          rel="noreferrer"
                         >
-                          <Download className="w-4 h-4" /> Unduh
+                          <Download className="w-3.5 h-3.5" />
                         </a>
                         <button
-                          type="button"
-                          className="btn border border-slate-300"
+                          className="btn px-2 py-1 text-xs border border-red-500 text-red-400"
                           onClick={() => removeAttach(att.id)}
                         >
-                          <Trash2 className="w-4 h-4" /> Lepas
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </li>
                   ))}
                 </ul>
               )}
-              <div className="text-xs text-slate-400 mt-2">
-                Lampiran tidak wajib.
-              </div>
             </div>
 
-            <div className="modal-actions pt-2">
-              <button className="btn btn-primary" type="submit">
+            {/* ACTION */}
+            <div className="flex gap-2 pt-2">
+              <button className="btn btn-primary">
                 <Save className="w-4 h-4" /> Simpan
               </button>
-              <button className="btn btn-ghost" type="button" onClick={onClose}>
-                <X className="w-4 h-4" /> Tutup
+              <button className="btn btn-ghost" onClick={onClose}>
+                Tutup
               </button>
             </div>
           </form>

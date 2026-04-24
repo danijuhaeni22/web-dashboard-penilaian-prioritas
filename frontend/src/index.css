@@ -3,58 +3,114 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== GLOBAL DARK MODE ===== */
+body {
+  @apply bg-slate-900 text-slate-200;
+}
+
 @layer components {
   .card {
-    @apply bg-white rounded-2xl shadow-card p-5;
+    @apply bg-slate-800 rounded-2xl shadow-card p-5 border border-slate-700;
   }
+
   .btn {
-    @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium border border-slate-200 shadow-sm hover:shadow transition;
+    @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium border border-slate-600 bg-slate-700 text-slate-200 hover:bg-slate-600 transition;
   }
+
   .btn-primary {
     @apply text-white bg-sky-600 hover:bg-sky-700 border-sky-600;
   }
+
   .btn-ghost {
-    @apply bg-slate-100 hover:bg-slate-200 text-slate-700;
+    @apply bg-slate-700 hover:bg-slate-600 text-slate-200;
   }
+
   .input {
-    @apply block w-full rounded-lg border-slate-300 focus:border-sky-500 focus:ring-sky-500;
+    @apply block w-full rounded-lg bg-slate-800 border-slate-600 text-slate-200 placeholder-slate-400 focus:border-sky-500 focus:ring-sky-500;
   }
+
   .select {
-    @apply block w-full rounded-lg border-slate-300 focus:border-sky-500 focus:ring-sky-500;
+    @apply block w-full rounded-lg bg-slate-800 border-slate-600 text-slate-200 focus:border-sky-500 focus:ring-sky-500;
   }
+
   .badge {
     @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold;
   }
+
   .badge-red {
-    @apply bg-red-100 text-red-700;
+    @apply bg-red-900 text-red-300;
   }
+
   .badge-amber {
-    @apply bg-amber-100 text-amber-700;
+    @apply bg-amber-900 text-amber-300;
   }
+
   .badge-green {
-    @apply bg-green-100 text-green-700;
+    @apply bg-green-900 text-green-300;
   }
+
   .chip {
-    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700;
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-slate-700 text-slate-200;
   }
 }
 
-/* Modal */
+/* ===== MODAL DARK ===== */
 .modal-backdrop {
-  @apply fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4;
+  @apply fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4;
 }
+
 .modal {
-  @apply bg-white w-full max-w-2xl rounded-2xl shadow-xl;
+  @apply bg-slate-800 w-full max-w-2xl rounded-2xl shadow-xl border border-slate-700;
 }
+
 .modal-header {
-  @apply flex items-center justify-between px-5 py-3 border-b;
+  @apply flex items-center justify-between px-5 py-3 border-b border-slate-700;
 }
+
 .modal-title {
   @apply flex items-center gap-2 font-extrabold text-lg;
 }
+
 .modal-body {
   @apply p-5;
 }
+
 .modal-actions {
   @apply flex gap-2 mt-2;
+}
+
+/* ===== CHART ===== */
+.chart-container {
+  position: relative;
+  height: 260px;
+  width: 100%;
+}
+
+/* Hide scrollbar tapi tetap bisa scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE & Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.export-mode {
+  background: #ffffff !important;
+}
+
+.export-mode .card {
+  background: #ffffff !important;
+  color: #000 !important;
+  box-shadow: none !important;
+  border: 1px solid #ddd !important;
+}
+
+.export-mode table {
+  font-size: 10px;
+}
+
+.export-mode th,
+.export-mode td {
+  padding: 6px !important;
 }
